@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace BlazorApp2
 {
     public class Program
     {
+  
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +32,15 @@ namespace BlazorApp2
             })
                 .AddIdentityCookies();
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            var connectionStringName = "DefaultConnection";
+
+            var connectionString = builder.Configuration.GetConnectionString(connectionStringName)
+                ?? throw new InvalidOperationException($"Connection string '{connectionStringName}' not found.");
+
+            Console.WriteLine(connectionString);
+
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -53,8 +62,17 @@ namespace BlazorApp2
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                dbContext.Database.Migrate();
+                try
+                {
+                    dbContext.Database.Migrate();
+                    Console.WriteLine("Database migration applied successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"An error occurred during migration: {ex.Message}");
+                }
             }
+
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

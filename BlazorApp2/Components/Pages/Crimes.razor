@@ -1,0 +1,82 @@
+﻿@page "/crimes"
+@using BlazorApp2.Data
+@using Microsoft.AspNetCore.Components.Forms
+@inject IWebHostEnvironment WebHotEnv
+@rendermode InteractiveServer
+
+<PageTitle>Crime Records</PageTitle>
+
+<h1>Crime Records</h1>
+
+<div class="container d-flex">
+    <div class="col-sm-4 mx-auto">
+        <EditForm Model="fileModel" enctype="multipart/form-data" FormName="fileUploadForm" OnValidSubmit="HandleFileUpload">
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <InputText @bind-Value="fileModel.Name" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">File</label>
+                <InputFile OnChange="HandleFileSelected" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <input type="submit" class="btn btn-sm btn-success" value="Submit" />
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <p><em>Loading...</em></p>
+}
+
+@code {
+    private FileModel fileModel = new FileModel();
+    private bool isLoading = false;
+
+    private class FileModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public IBrowserFile? File { get; set; }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            fileModel.File = e.GetMultipleFiles(1).FirstOrDefault(); // Set the selected file
+            fileModel.Name = fileModel.File?.Name;
+            Console.WriteLine($"Selected file: {fileModel.File?.Name}");
+        }
+    }
+
+    private async Task HandleFileUpload()
+    {
+        if (fileModel.File == null)
+        {
+            Console.WriteLine("No file was uploaded.");
+            return;
+        }
+
+        var fileName = fileModel.File.Name; // Get the name of the file
+        var folderPath = Path.Combine(WebHotEnv.WebRootPath, "uploads");
+        Directory.CreateDirectory(folderPath);
+
+        var filePath = Path.Combine(folderPath, fileName);
+
+        try
+        {
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await fileModel.File.OpenReadStream().CopyToAsync(stream);
+            }
+
+            Console.WriteLine($"File uploaded successfully: {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

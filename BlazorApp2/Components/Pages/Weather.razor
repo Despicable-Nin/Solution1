@@ -1,4 +1,5 @@
 ﻿@page "/weather"
+@using BlazorApp2.Data
 @attribute [StreamRendering]
 
 <PageTitle>Weather</PageTitle>
@@ -13,6 +14,10 @@
 }
 else
 {
+    @foreach(var u in _users)
+    {
+        <p>@u.UserName</p>
+    }
     <table class="table">
         <thead>
             <tr>
@@ -38,6 +43,10 @@ else
 
 @code {
     private WeatherForecast[]? forecasts;
+    private ApplicationUser[]? _users;
+
+    [Inject] 
+    private ApplicationDbContext _dbContext { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,6 +61,8 @@ else
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+
+        _users = _dbContext.Users.ToArray();
     }
 
     private class WeatherForecast
