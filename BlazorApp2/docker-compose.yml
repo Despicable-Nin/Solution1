@@ -1,0 +1,43 @@
+﻿version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SA_PASSWORD:-someThingComplicated1234}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD:-someThingComplicated1234} -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  blazorapp:
+    image: blazorapp2:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=kardb;User Id=sa;Password=${SA_PASSWORD:-someThingComplicated1234};TrustServerCertificate=True;MultiSubnetFailover=True
+      - ASPNETCORE_DATA_PROTECTION__PATH=/var/dpkeys
+    volumes:
+      - dpkeys:/var/dpkeys
+    depends_on:
+      - sqlserver
+    networks:
+      - app-network
+
+volumes:
+  sqlserver_data:
+  dpkeys:
+
+networks:
+  app-network:
