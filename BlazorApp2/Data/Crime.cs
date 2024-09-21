@@ -12,6 +12,7 @@ namespace BlazorApp2.Data
 
         [Key]
         public Guid Id { get; set; }
+        
         public int CaseID { get; set; }
         public string? CrimeType { get; set; }
         public DateTime Date { get; set; }

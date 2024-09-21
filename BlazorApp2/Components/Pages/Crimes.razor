@@ -1,9 +1,13 @@
 ﻿@page "/crimes"
+@using BlazorApp2.Services.Crimes
 @rendermode InteractiveServer
 @inject IWebHostEnvironment WebHotEnv
 
 @using BlazorApp2.Data
 @using BlazorApp2.Helpers
+@using BlazorApp2.Services
+@using BlazorApp2.Components
+@using BlazorApp2.Components.Pages.Partials
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
 
@@ -57,7 +61,6 @@
                         <th>Police District</th>
                         <th>Weather Condition</th>
                         <th>Crime Motive</th>
-                        <th>Nearby Landmarks</th>
                         <th>Recurring Incident</th>
                     </tr>
                 </thead>
@@ -67,17 +70,16 @@
                         <tr>
                             <td>@crime.CaseID</td>
                             <td>@crime.CrimeType</td>
-                            <td>@crime.Date.ToShortDateString()</td>
+                            <td>@crime.Date</td>
                             <td>@crime.Time.ToString(@"hh\:mm\:ss")</td>
                             <td>@crime.Address</td>
                             <td>@crime.Severity</td>
                             <td>@crime.WeaponUsed</td>
                             <td>@crime.VictimCount</td>
-                            <td>@crime.ArrestDate?.ToShortDateString()</td>
+                            <td>@crime.ArrestDate</td>
                             <td>@crime.PoliceDistrict</td>
                             <td>@crime.WeatherCondition</td>
                             <td>@crime.CrimeMotive</td>
-                            <td>@crime.NearbyLandmarks</td>
                             <td>@crime.RecurringIncident</td>
                         </tr>
                     }
@@ -86,30 +88,9 @@
         </div>
 
         <!-- Pagination Controls -->
-        <nav aria-label="Page navigation example">
-            <ul class="pagination">
-                <li class="page-item">
-                    <button class="page-link" @onclick="() => ChangePage(CurrentPage - 1)" disabled="@(CurrentPage <= 1)">
-                        <span aria-hidden="true">&laquo;</span>
-                        <span class="sr-only">Previous</span>
-                    </button>
-                </li>
-
-                @for (int i = Math.Max(1, CurrentPage - 1); i <= Math.Min(TotalPages, CurrentPage + 1); i++)
-                {
-                    <li class="page-item @(i == CurrentPage ? "active" : "")">
-                        <button class="page-link" @onclick="() => ChangePage(i)">@i</button>
-                    </li>
-                }
-
-                <li class="page-item">
-                    <button class="page-link" @onclick="() => ChangePage(CurrentPage + 1)" disabled="@(CurrentPage >= TotalPages)">
-                        <span aria-hidden="true">&raquo;</span>
-                        <span class="sr-only">Next</span>
-                    </button>
-                </li>
-            </ul>
-        </nav>
+         <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
+ 
+    
     }
 }
 
@@ -117,13 +98,13 @@
 @code {
     #region Dependencies
     [Inject]
-    private ApplicationDbContext _dbContext { get; set; } = null!;
+    private ICrimeService _service { get; set; } = null!;
     #endregion
 
     #region Member Fields
     FileModel _fileModel = new FileModel();
     bool _isLoading = false;
-    IEnumerable<Crime> _crimes = Array.Empty<Crime>();
+    IEnumerable<CrimeDto> _crimes = Array.Empty<CrimeDto>();
 
     public int CurrentPage { get; private set; } = 1;
     public int PageSize { get; set; } = 10;
@@ -144,11 +125,10 @@
         _isLoading = true; // Set loading to true
         try
         {
-            TotalRecords = await _dbContext.Crimes.CountAsync();
-            _crimes = await _dbContext.Crimes
-                .Skip((CurrentPage - 1) * PageSize)
-                .Take(PageSize)
-                .ToArrayAsync();
+            var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
+
+            TotalRecords = result.TotalCount;
+            _crimes = result.Crimes;
         }
         finally
         {
@@ -191,7 +171,7 @@
             using var reader = new StreamReader(stream);
             string? line;
 
-            var crimes = new List<Crime>();
+            var crimes = new List<CrimeDto>();
 
             while ((line = await reader.ReadLineAsync()) != null)
             {
@@ -207,11 +187,11 @@
                     continue;
                 }
 
-                var crime = new Crime
+                var crime = new CrimeDto
                     {
                         CaseID = int.Parse(columns[0]),
                         CrimeType = columns[1],
-                        Date = DateTime.Parse(columns[2]),
+                        Date = columns[2],
                         Time = TimeSpan.Parse(columns[3]),
                         Address = columns[4],
                         Severity = columns[5],
@@ -220,7 +200,7 @@
                         VictimCount = int.Parse(columns[8]),
                         SuspectDescription = columns[9],
                         ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase),
-                        ArrestDate = DateTime.TryParse(columns[11], out var arrestDate) ? arrestDate : (DateTime?)null,
+                        ArrestDate = columns[11],
                         ResponseTimeInMinutes = int.Parse(columns[12]),
                         PoliceDistrict = columns[13],
                         WeatherCondition = columns[14],
@@ -228,9 +208,9 @@
                         NearbyLandmarks = columns[16],
                         RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase),
                         PopulationDensityPerSqKm = int.Parse(columns[18]),
-                        UnemploymentRate = double.Parse(columns[19]),
-                        MedianIncome = decimal.Parse(columns[20]),
-                        ProximityToPoliceStationInKm = double.Parse(columns[21]),
+                        UnemploymentRate = columns[19],
+                        MedianIncome = columns[20],
+                        ProximityToPoliceStationInKm = columns[21],
                         StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
                         CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
                         AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
@@ -238,8 +218,7 @@
 
                 crimes.Add(crime);
             }
-            await _dbContext.Crimes.AddRangeAsync(crimes);
-            await _dbContext.SaveChangesAsync();
+            await _service.AddCrimesAsync(crimes.Distinct());
 
             await LoadData(); // Reload data to reflect new entries
         }

@@ -1,6 +1,9 @@
 using BlazorApp2.Components;
 using BlazorApp2.Components.Account;
 using BlazorApp2.Data;
+using BlazorApp2.Repositories;
+using BlazorApp2.Services.Clustering;
+using BlazorApp2.Services.Crimes;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -24,6 +27,10 @@ namespace BlazorApp2
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+            builder.Services.AddScoped<ICrimeRepository,CrimeRepository>();
+            builder.Services.AddScoped<ICrimeService, CrimeService>();
+            builder.Services.AddSingleton<ClusteringService>();
 
             builder.Services.AddAuthentication(options =>
             {

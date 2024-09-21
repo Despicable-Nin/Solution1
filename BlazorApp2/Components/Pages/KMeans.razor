@@ -1,0 +1,53 @@
+﻿@page "/datamining"
+@rendermode InteractiveServer
+
+@using BlazorApp2.Services.Clustering
+@using BlazorApp2.Services.Crimes
+@inject ClusteringService ClusteringService
+
+<h3>K-Means Clustering Results</h3>
+
+<button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
+
+@if (_isLoading)
+{
+    <p>Loading...</p>
+}
+else if (_clusterResults != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Record ID</th>
+                <th>Cluster ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in _clusterResults)
+            {
+                <tr>
+                    <td>@result.RecordId</td>
+                    <td>@result.ClusterId</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool _isLoading = false;
+    private List<ClusteringService.ClusterResult>? _clusterResults;
+    [Inject] private ICrimeService _crimeService { get; set; } = null!;
+
+    private async Task PerformClustering()
+    {
+        _isLoading = true;
+
+        // Example data (replace this with your real data)
+        var data = await _crimeService.GetCrimesAsync(1, 1000);
+
+        _clusterResults = ClusteringService.PerformKMeansClustering(data.Crimes);
+
+        _isLoading = false;
+    }
+}
