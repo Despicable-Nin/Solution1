@@ -1,9 +1,6 @@
 ﻿using BlazorApp2.Services.Crimes;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
 using Microsoft.ML.Data;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace BlazorApp2.Services.Clustering;
 
@@ -29,8 +26,17 @@ public class ClusteringService
 
         // Define the pipeline: concatenate features and apply K-Means clustering
         // Features should be integer or float values
-        var pipeline = _mlContext.Transforms.Concatenate("Features", nameof(CrimeDto.Date), nameof(CrimeDto.Severity), nameof(CrimeDto.Address))//, nameof(CrimeData.LocationY))
-            .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+        //var pipeline = _mlContext.Transforms.Concatenate("Features", nameof(CrimeDto.VictimCount), nameof(CrimeDto.ArrestMade), nameof(CrimeDto.RecurringIncident))//, nameof(CrimeData.LocationY))
+        //    .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+
+        var pipeline = _mlContext.Transforms.Conversion.ConvertType(new[] {
+                new InputOutputColumnPair("VictimCountFloat", nameof(CrimeDto.VictimCount)),
+                new InputOutputColumnPair("ArrestMadeFloat", nameof(CrimeDto.ArrestMade)),
+                new InputOutputColumnPair("RecurringIncidentFloat", nameof(CrimeDto.RecurringIncident))
+            }, DataKind.Single) // Convert to Single (float)
+          .Append(_mlContext.Transforms.Concatenate("Features", "VictimCountFloat", "ArrestMadeFloat", "RecurringIncidentFloat"))
+          .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+
 
         // Train the model
         var model = pipeline.Fit(dataView);
@@ -44,7 +50,9 @@ public class ClusteringService
         return clusterPredictions.Select((p, index) => new ClusterResult
         {
             RecordId = index + 1, // Can be based on your data's primary key
-            ClusterId = p.PredictedClusterId
+            ClusterId = p.PredictedClusterId,
+           
+            
         }).ToList();
     }
 

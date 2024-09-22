@@ -18,7 +18,7 @@ namespace BlazorApp2.Services.Crimes
         public int VictimCount { get; init; }
         public string? SuspectDescription { get; init; }
         [Display(Name = "Arrest Made")]
-        public bool ArrestMade { get; init; }
+        public int ArrestMade { get; init; }
         public string? ArrestDate { get; init; }
         [Display(Name = "Response Time")]
         public int ResponseTimeInMinutes { get; init; }
@@ -29,7 +29,7 @@ namespace BlazorApp2.Services.Crimes
         public string? CrimeMotive { get; init; }
         public string? NearbyLandmarks { get; init; }
 
-        public bool RecurringIncident { get; init; }
+        public int RecurringIncident { get; init; }
         public int PopulationDensityPerSqKm { get; init; }
         public string? UnemploymentRate { get; init; }
         public string? MedianIncome { get; init; }
