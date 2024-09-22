@@ -1,32 +1,28 @@
 sequenceDiagram
     participant User
-    participant BlazorApp
-    participant GISService
+    participant App
+    participant GISService as GIS Service
     participant Database
+    participant ML as K-Means Library
+    participant Map as Map Service
 
-    User->>BlazorApp: Upload CSV
-    BlazorApp->>BlazorApp: Sanitize CSV (check duplicates)
-    BlazorApp->>GISService: Parse addresses to get lat/long
-    GISService-->>BlazorApp: Return lat/long values
-    BlazorApp->>BlazorApp: Transform data (convert to strings, integers, floats, lat/long)
-    BlazorApp->>Database: Persist sanitized and transformed data (including lat/long)
-    Database-->>BlazorApp: Confirm data stored
-    BlazorApp-->>User: Notify success
+    User->>App: Upload CSV File
+    App->>App: Sanitize Data (check for duplicates)
+    App->>GISService: Convert Address to Lat/Long
+    GISService-->>App: Return Lat/Long
+    App->>App: Transform Data for K-Means (ensure numeric types)
+    
+    App->>Database: Persist Cleaned Data
+    Database-->>App: Acknowledge Data Saved
 
+    App->>ML: Perform K-Means Clustering on Lat/Long
+    ML-->>App: Return Cluster Results (Cluster IDs and Centroids)
 
-    participant User
-    participant BlazorApp
-    participant Database
-    participant MLModel
-    participant MapService
+    alt Cluster Results Success
+        App->>Map: Generate Map Pinpoints and Centroids
+        Map-->>App: Map Rendered with Clusters and Centroids
+    else Cluster Results Failure
+        App->>User: Show Clustering Error Message
+    end
 
-    User->>BlazorApp: Initiate K-Means Clustering
-    BlazorApp->>Database: Fetch lat/long and other transformed data
-    Database-->>BlazorApp: Return lat/long and other data
-
-    BlazorApp->>MLModel: Perform K-Means Clustering using lat/long
-    MLModel-->>BlazorApp: Return clustering results (with cluster IDs and lat/long)
-
-    BlazorApp->>MapService: Generate map with clustered pinpoints based on lat/long
-    MapService-->>BlazorApp: Return map with pins for clusters
-    BlazorApp-->>User: Display map with cluster pinpoints
+    User-->>Map: View Map with Clustered Points and Centroids
