@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant User
+    participant BlazorApp
+    participant GISService
+    participant Database
+
+    User->>BlazorApp: Upload CSV
+    BlazorApp->>BlazorApp: Sanitize CSV (check duplicates)
+    BlazorApp->>GISService: Parse addresses to get lat/long
+    GISService-->>BlazorApp: Return lat/long values
+    BlazorApp->>BlazorApp: Transform data (convert to strings, integers, floats, lat/long)
+    BlazorApp->>Database: Persist sanitized and transformed data (including lat/long)
+    Database-->>BlazorApp: Confirm data stored
+    BlazorApp-->>User: Notify success
+
+
+    participant User
+    participant BlazorApp
+    participant Database
+    participant MLModel
+    participant MapService
+
+    User->>BlazorApp: Initiate K-Means Clustering
+    BlazorApp->>Database: Fetch lat/long and other transformed data
+    Database-->>BlazorApp: Return lat/long and other data
+
+    BlazorApp->>MLModel: Perform K-Means Clustering using lat/long
+    MLModel-->>BlazorApp: Return clustering results (with cluster IDs and lat/long)
+
+    BlazorApp->>MapService: Generate map with clustered pinpoints based on lat/long
+    MapService-->>BlazorApp: Return map with pins for clusters
+    BlazorApp-->>User: Display map with cluster pinpoints
