@@ -2,6 +2,7 @@
 
 namespace BlazorApp2.Data
 {
+
     public class Crime
     {
         public Crime()
@@ -9,9 +10,8 @@ namespace BlazorApp2.Data
             
         }
 
-        [Key]
         public Guid Id { get; set; }
-        
+        public DateTime DateUploaded { get; set; } = DateTime.Now;
         public int CaseID { get; set; }
         public string? CrimeType { get; set; }
         public DateTime Date { get; set; }
