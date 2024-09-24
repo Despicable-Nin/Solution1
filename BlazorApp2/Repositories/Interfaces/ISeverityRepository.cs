@@ -5,4 +5,5 @@ namespace BlazorApp2.Repositories.Interfaces;
 public interface ISeverityRepository
 {
     Task<IEnumerable<Severity>> GetSeveritiesAsync();
+    Task AddSeveritiesAsync(IEnumerable<Severity> severities);
 }

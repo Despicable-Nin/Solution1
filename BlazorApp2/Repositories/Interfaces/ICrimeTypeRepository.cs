@@ -5,4 +5,5 @@ namespace BlazorApp2.Repositories.Interfaces;
 public interface ICrimeTypeRepository
 {
     Task<IEnumerable<CrimeType>> GetCrimeTypesAsync();
+    Task AddCrimeTypesAsync(IEnumerable<CrimeType> crimeTypes);
 }
