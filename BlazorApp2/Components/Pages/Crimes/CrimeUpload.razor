@@ -98,22 +98,63 @@
 
         try
         {
-         
-
             // add crimeTypes before saving
             await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
 
+        try
+        {
             // add crimeMotive before saving
             await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
 
+        try
+        {
             // add weatherConditions before saving
             await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct());
 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+
             // add policeDistricts before saving
             await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+
 
             // add severityLevels before saving
             await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct());
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+
+
+        try
+        {
 
             // add crimes to the database
             await _service.AddCrimesAsync(crimes.Distinct());
