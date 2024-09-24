@@ -1,6 +1,7 @@
 ﻿@using BlazorApp2.Data
 @using BlazorApp2.Helpers
 @using BlazorApp2.Services.Crimes
+@using BlazorApp2.Services.Enumerations
 @using Microsoft.AspNetCore.Components.Forms
 
 <div class="container mb-4">
@@ -18,6 +19,9 @@ public EventCallback OnFileUploadSuccess { get; set; }
 
 [Inject]
 private ICrimeService _service { get; set; } = null!;
+
+[Inject]
+private IEnumeration enumService { get; set; } = null!;
 
 private FileModel _fileModel = new FileModel();
 private bool _isLoading = false;
@@ -94,6 +98,9 @@ private async Task HandleFileUpload()
             crimes.Add(crime);
         }
 
+        // check crimeTypes
+
+       
         await _service.AddCrimesAsync(crimes.Distinct());
 
         // Notify parent component after a successful upload
