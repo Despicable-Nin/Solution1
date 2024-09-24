@@ -1,0 +1,117 @@
+﻿@using BlazorApp2.Data
+@using BlazorApp2.Helpers
+@using BlazorApp2.Services.Crimes
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="container mb-4">
+    <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
+        <div class="input-group">
+            <InputFile OnChange="HandleFileSelected" class="form-control" />
+            <button type="submit" class="btn btn-success">Upload</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+[Parameter]
+public EventCallback OnFileUploadSuccess { get; set; }
+
+[Inject]
+private ICrimeService _service { get; set; } = null!;
+
+private FileModel _fileModel = new FileModel();
+private bool _isLoading = false;
+
+private async Task HandleFileSelected(InputFileChangeEventArgs e)
+{
+    if (e.FileCount > 0)
+    {
+        _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
+    }
+}
+
+private async Task HandleFileUpload()
+{
+    if (_fileModel.File == null)
+    {
+        Console.WriteLine("No file was uploaded.");
+        return;
+    }
+
+    _isLoading = true;
+
+    try
+    {
+        using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
+        using var reader = new StreamReader(stream);
+        string? line;
+
+        var crimes = new List<CrimeDashboardDto>();
+
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            var columns = line.Split(',');
+
+            if (columns.Length != GenericHelper.CountProperties<Crime>() - 1)
+            {
+                throw new Exception("Invalid number of columns in the file.");
+            };
+
+            if (!int.TryParse(columns[0], out _))
+            {
+                continue;
+            }
+
+            var crime = new CrimeDashboardDto
+                {
+                    CaseID = int.Parse(columns[0]),
+                    CrimeType = columns[1],
+                    Date = columns[2],
+                    Time = TimeSpan.Parse(columns[3]),
+                    Address = columns[4],
+                    Severity = columns[5],
+                    Description = columns[6],
+                    WeaponUsed = columns[7],
+                    VictimCount = int.Parse(columns[8]),
+                    SuspectDescription = columns[9],
+                    ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                    ArrestDate = columns[11],
+                    ResponseTimeInMinutes = int.Parse(columns[12]),
+                    PoliceDistrict = columns[13],
+                    WeatherCondition = columns[14],
+                    CrimeMotive = columns[15],
+                    NearbyLandmarks = columns[16],
+                    RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                    PopulationDensityPerSqKm = int.Parse(columns[18]),
+                    UnemploymentRate = columns[19],
+                    MedianIncome = columns[20],
+                    ProximityToPoliceStationInKm = columns[21],
+                    StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                    CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                    AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
+                };
+
+            crimes.Add(crime);
+        }
+
+        await _service.AddCrimesAsync(crimes.Distinct());
+
+        // Notify parent component after a successful upload
+        await OnFileUploadSuccess.InvokeAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error processing file: {ex.Message}");
+    }
+    finally
+    {
+        _isLoading = false;
+        _fileModel = new FileModel();
+    }
+}
+
+record FileModel
+{
+    public IBrowserFile? File { get; set; }
+}
+}

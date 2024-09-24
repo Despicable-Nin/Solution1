@@ -1,0 +1,124 @@
+﻿@page "/crimes"
+@using BlazorApp2.Services.Crimes
+@rendermode InteractiveServer
+@inject IWebHostEnvironment WebHotEnv
+
+@using BlazorApp2.Data
+@using BlazorApp2.Helpers
+@using BlazorApp2.Services
+@using BlazorApp2.Components
+@using BlazorApp2.Components.Pages.Partials
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+
+@* Page Title *@
+<PageTitle>Crime Records</PageTitle>
+
+<h1>Crime Records</h1>
+
+<!-- Inline file upload form -->
+<CrimeUpload OnFileUploadSuccess="HandleFileUpload"/>
+
+@if (_isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <p><em>Loading data, please wait...</em></p>
+    </div>
+}
+
+@if (!_isLoading && _crimes != null)
+{
+    <h3>Uploaded Crime Records</h3>
+    @if (!_crimes.Any())
+{
+    <p>No crime records available.</p>
+}
+else
+{
+    <CrimesTable Crimes="_crimes" />
+
+    <!-- Pagination Controls -->
+     <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
+}
+}
+
+
+@code {
+#region Dependencies
+[Inject]
+private ICrimeService _service { get; set; } = null!;
+#endregion
+
+#region Member Fields
+FileModel _fileModel = new FileModel();
+bool _isLoading = true;
+IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
+
+public int CurrentPage { get; private set; } = 1;
+public int PageSize { get; set; } = 10;
+public int TotalRecords { get; private set; }
+public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
+        #endregion
+
+        #region Lifecycle Method(s)
+        protected override async Task OnInitializedAsync() => await LoadData();
+        #endregion
+
+        #region Method(s)
+        private async Task LoadData()
+{
+    _isLoading = true; // Set loading to true
+    try
+    {
+        var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
+
+        TotalRecords = result.TotalCount;
+        _crimes = result.Crimes;
+    }
+    finally
+    {
+
+        _isLoading = false; // Set loading to false
+        StateHasChanged(); // Trigger re-render
+
+    }
+}
+
+private async Task ChangePage(int newPage)
+{
+    if (newPage < 1 || newPage > TotalPages)
+        return;
+
+    CurrentPage = newPage;
+    await LoadData();
+}
+
+private async Task HandleFileSelected(InputFileChangeEventArgs e)
+{
+    if (e.FileCount > 0)
+    {
+        _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
+    }
+}
+
+        private async Task HandleFileUpload() => await LoadData(); // Reload data to reflect new entries
+        #endregion
+
+        #region Request Model
+        record FileModel
+{
+    public IBrowserFile? File { get; set; }
+}
+#endregion
+}
+
+<style>
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: .25em;
+    }
+</style>

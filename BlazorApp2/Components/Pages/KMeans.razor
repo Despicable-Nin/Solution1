@@ -24,30 +24,30 @@ else if (_clusterResults != null)
         </thead>
         <tbody>
             @foreach (var result in _clusterResults)
-            {
-                <tr>
+        {
+            <tr>
                     <td>@result.RecordId</td>
                     <td>@result.ClusterId</td>
                 </tr>
-            }
+        }
         </tbody>
     </table>
 }
 
 @code {
-    private bool _isLoading = false;
-    private List<ClusteringService.ClusterResult>? _clusterResults;
-    [Inject] private ICrimeService _crimeService { get; set; } = null!;
+private bool _isLoading = false;
+private List<ClusteringService.ClusterResult>? _clusterResults;
+[Inject] private ICrimeService _crimeService { get; set; } = null!;
 
-    private async Task PerformClustering()
-    {
-        _isLoading = true;
+private async Task PerformClustering()
+{
+    _isLoading = true;
 
-        // Example data (replace this with your real data)
-        var data = await _crimeService.GetCrimesAsync(1, 1000);
+    // Example data (replace this with your real data)
+    var data = await _crimeService.GetCrimesAsync(1, 1000);
 
-        _clusterResults = ClusteringService.PerformKMeansClustering(data.Crimes);
+    _clusterResults = ClusteringService.PerformKMeansClustering(data.Crimes);
 
-        _isLoading = false;
-    }
+    _isLoading = false;
+}
 }
