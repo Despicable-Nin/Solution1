@@ -1,0 +1,39 @@
+﻿<!-- Toast.razor -->
+@if (IsVisible)
+{
+    <div class="toast" @onclick="HideToast">
+        <div class="toast-header">
+            <strong class="mr-auto">Notification</strong>
+            <button type="button" class="close" aria-label="Close" @onclick="HideToast">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            @Message
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Message { get; set; }
+
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    public void Show(string message)
+    {
+        Message = message;
+        IsVisible = true;
+        StateHasChanged();
+
+        // Auto-hide after a few seconds
+        Task.Delay(3000).ContinueWith(t => HideToast(), TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private void HideToast()
+    {
+        IsVisible = false;
+        StateHasChanged();
+    }
+}

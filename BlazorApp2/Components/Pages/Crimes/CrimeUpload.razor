@@ -14,38 +14,36 @@
 </div>
 
 @code {
-[Parameter]
-public EventCallback OnFileUploadSuccess { get; set; }
+    [Parameter]
+    public EventCallback OnFileUploadSuccess { get; set; }
 
-[Inject]
-private ICrimeService _service { get; set; } = null!;
+    [Inject]
+    private ICrimeService _service { get; set; } = null!;
 
-[Inject]
-private IEnumeration enumService { get; set; } = null!;
+    [Inject]
+    private IEnumeration enumService { get; set; } = null!;
 
-private FileModel _fileModel = new FileModel();
-private bool _isLoading = false;
+    private FileModel _fileModel = new FileModel();
+    private bool _isLoading = false;
 
-private async Task HandleFileSelected(InputFileChangeEventArgs e)
-{
-    if (e.FileCount > 0)
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
-        _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
-    }
-}
-
-private async Task HandleFileUpload()
-{
-    if (_fileModel.File == null)
-    {
-        Console.WriteLine("No file was uploaded.");
-        return;
+        if (e.FileCount > 0)
+        {
+            _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
+        }
     }
 
-    _isLoading = true;
-
-    try
+    private async Task HandleFileUpload()
     {
+        if (_fileModel.File == null)
+        {
+            Console.WriteLine("No file was uploaded.");
+            return;
+        }
+
+        _isLoading = true;
+
         using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
         using var reader = new StreamReader(stream);
         string? line;
@@ -56,7 +54,7 @@ private async Task HandleFileUpload()
         {
             var columns = line.Split(',');
 
-            if (columns.Length != GenericHelper.CountProperties<Crime>() - 1)
+            if (columns.Length != GenericHelper.CountProperties<Crime>() - 2)
             {
                 throw new Exception("Invalid number of columns in the file.");
             };
@@ -98,27 +96,44 @@ private async Task HandleFileUpload()
             crimes.Add(crime);
         }
 
-        // check crimeTypes
+        try
+        {
+         
 
-       
-        await _service.AddCrimesAsync(crimes.Distinct());
+            // add crimeTypes before saving
+            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct());
 
-        // Notify parent component after a successful upload
-        await OnFileUploadSuccess.InvokeAsync();
+            // add crimeMotive before saving
+            await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct());
+
+            // add weatherConditions before saving
+            await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct());
+
+            // add policeDistricts before saving
+            await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct());
+
+            // add severityLevels before saving
+            await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct());
+
+            // add crimes to the database
+            await _service.AddCrimesAsync(crimes.Distinct());
+
+            // Notify parent component after a successful upload
+            await OnFileUploadSuccess.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            _fileModel = new FileModel();
+        }
     }
-    catch (Exception ex)
+
+    record FileModel
     {
-        Console.WriteLine($"Error processing file: {ex.Message}");
+        public IBrowserFile? File { get; set; }
     }
-    finally
-    {
-        _isLoading = false;
-        _fileModel = new FileModel();
-    }
-}
-
-record FileModel
-{
-    public IBrowserFile? File { get; set; }
-}
 }

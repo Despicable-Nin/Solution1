@@ -1,6 +1,8 @@
-﻿namespace BlazorApp2.Data
+﻿using BlazorApp2.Data.Interfaces;
+
+namespace BlazorApp2.Data
 {
-    public class Severity
+    public class Severity : IEntity
     {
         protected Severity() { }
 

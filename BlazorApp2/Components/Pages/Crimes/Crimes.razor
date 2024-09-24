@@ -18,7 +18,7 @@
 <h1>Crime Records</h1>
 
 <!-- Inline file upload form -->
-<CrimeUpload OnFileUploadSuccess="HandleFileUpload"/>
+<CrimeUpload OnFileUploadSuccess="HandleFileUpload" />
 
 @if (_isLoading)
 {
@@ -34,86 +34,70 @@
 {
     <h3>Uploaded Crime Records</h3>
     @if (!_crimes.Any())
-{
-    <p>No crime records available.</p>
-}
-else
-{
-    <CrimesTable Crimes="_crimes" />
+    {
+        <p>No crime records available.</p>
+    }
+    else
+    {
+        <CrimesTable Crimes="_crimes" />
 
-    <!-- Pagination Controls -->
-     <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
+        <!-- Pagination Controls -->
+        <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
+    }
 }
-}
-
 
 @code {
     #region Dependencies
     [Inject]
     private ICrimeService _service { get; set; } = null!;
-
     #endregion
 
-#region Member Fields
-        FileModel _fileModel = new FileModel();
-        bool _isLoading = true;
-        IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
+    #region Member Fields
+    bool _isLoading = true;
+    IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
 
-        public int CurrentPage { get; private set; } = 1;
-        public int PageSize { get; set; } = 10;
-        public int TotalRecords { get; private set; }
-        public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
-        #endregion
+    public int CurrentPage { get; private set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int TotalRecords { get; private set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
+    #endregion
 
-        #region Lifecycle Method(s)
-        protected override async Task OnInitializedAsync() => await LoadData();
-        #endregion
+    #region Lifecycle Method(s)
+    protected override async Task OnInitializedAsync() => await LoadData();
+    #endregion
 
-        #region Method(s)
-        private async Task LoadData()
+    #region Method(s)
+    private async Task LoadData()
+    {
+        _isLoading = true; // Set loading to true
+        try
         {
-            _isLoading = true; // Set loading to true
-            try
-            {
-                var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
-
-                TotalRecords = result.TotalCount;
-                _crimes = result.Crimes;
-            }
-            finally
-            {
-
-                _isLoading = false; // Set loading to false
-                StateHasChanged(); // Trigger re-render
-
-            }
+            var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
+            TotalRecords = result.TotalCount;
+            _crimes = result.Crimes;
         }
-
-        private async Task ChangePage(int newPage)
+        finally
         {
-            if (newPage < 1 || newPage > TotalPages)
-                return;
-
-            CurrentPage = newPage;
-            await LoadData();
+            _isLoading = false; // Set loading to false
+            StateHasChanged(); // Trigger re-render
         }
+    }
 
-        private async Task HandleFileSelected(InputFileChangeEventArgs e)
-        {
-            if (e.FileCount > 0)
-            {
-                _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
-            }
-        }
+    private async Task ChangePage(int newPage)
+    {
+        if (newPage < 1 || newPage > TotalPages)
+            return;
 
-        private async Task HandleFileUpload() => await LoadData(); // Reload data to reflect new entries
-        #endregion
+        CurrentPage = newPage;
+        await LoadData();
+    }
 
-        #region Request Model
-        record FileModel {
-            public IBrowserFile? File { get; set; }
-        }
-        #endregion
+    private async Task HandleFileUpload()
+    {
+        _isLoading = true; // Set loading to true while processing the upload
+        await LoadData(); // Reload data to reflect new entries
+    }
+    #endregion
 }
 
 <style>

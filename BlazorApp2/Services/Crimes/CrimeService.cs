@@ -14,7 +14,15 @@ public class CrimeService : ICrimeService
 
     public async Task AddCrimesAsync(IEnumerable<CrimeDashboardDto> crimeDtos)
     {
-        var crimes = crimeDtos.Select(c => new Crime
+        if (crimeDtos == null) throw new ArgumentException(nameof(crimeDtos));
+
+        // Step 1: Get all existing CaseIDs at once
+        var existingCaseIds = await _crimeRepository.GetExistingCaseIdsAsync();
+
+        // Step 2: Use Except to filter out existing CaseIDs from crimeDtos
+        var crimes = crimeDtos
+            .Where(c => !existingCaseIds.Contains(c.CaseID))
+                    .Select(c => new Crime
         {
             CaseID = c.CaseID,
             CrimeType = c.CrimeType,
@@ -43,7 +51,10 @@ public class CrimeService : ICrimeService
             AlcoholOrDrugInvolvement = c.AlcoholOrDrugInvolvement
         });
 
-        await _crimeRepository.AddCrimesAsync(crimes);
+        if (crimes.Any())
+        {
+            await _crimeRepository.AddCrimesAsync(crimes);
+        }
     }
 
     public async Task<PaginatedCrimesDto> GetCrimesAsync(int page = 1, int pageSize = 10)

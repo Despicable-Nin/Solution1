@@ -16,7 +16,13 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
 
     public Task DeleteCrimeAsync(Guid id) => throw new NotImplementedException();
 
-    public Task<Crime> GetCrimeAsync(Guid id) => throw new NotImplementedException();
+    public async Task<Crime?> GetCrimeByCaseId(int id) => await _dbContext.Crimes.AsNoTracking().FirstOrDefaultAsync(c => c.CaseID == id);
+
+    public async Task<IEnumerable<int>> GetExistingCaseIdsAsync()
+    {
+        return await _dbContext.Crimes.AsNoTracking().Select(c => c.CaseID).ToArrayAsync();
+    }
+
 
     public async Task<(IEnumerable<Crime>, int totalCount)> GetCrimesAsync(int page, int pageSize)
     {
@@ -30,4 +36,8 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
 
     public Task<Crime> UpdateCrimeAsync(Crime crime) => throw new NotImplementedException();
 
+    public Task<List<Crime>> GetExistingCaseIdsAsync(List<int> caseIds)
+    {
+        throw new NotImplementedException();
+    }
 }

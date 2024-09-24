@@ -1,4 +1,6 @@
-﻿namespace BlazorApp2.Services.Enumerations
+﻿using BlazorApp2.Data.Interfaces;
+
+namespace BlazorApp2.Services.Enumerations
 {
     public interface IEnumeration
     {
@@ -8,6 +10,11 @@
         Task<IDictionary<int, string>> GetSeverities(int? key = null);
         Task<IDictionary<int, string>> GetWeatherConditions(int? key = null);
 
-        Task AddRangeAsync<T>(params T[] values) where T : class;
+        Task<IDictionary<int, string>> AddCrimeTypes(IEnumerable<string> crimeTypesToAdd);
+        Task AddRangeAsync(params IEntity[] values);
+        Task<IDictionary<int, string>> AddCrimeMotives(IEnumerable<string> motivesToAdd);
+        Task<IDictionary<int, string>> AddPoliceDistricts(IEnumerable<string> precinctsToAdd);
+        Task<IDictionary<int, string>> AddWeatherConditions(IEnumerable<string> weatherConditionsToAdd);
+        Task<IDictionary<int, string>> AddSeverities(IEnumerable<string> severitiesToAdd);
     }
 }
