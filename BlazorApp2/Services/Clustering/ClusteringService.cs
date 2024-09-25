@@ -13,7 +13,7 @@ public class ClusteringService
         _mlContext = new MLContext();
     }
 
-    public List<ClusterResult> PerformKMeansClustering(IEnumerable<CrimeDashboardDto> data)
+    public List<ClusterResult> PerformKMeansClustering(IEnumerable<CrimeDashboardDto> data, string[] features)
     {
         // Convert the input data into an IDataView (ML.NET data structure)
         var schema = SchemaDefinition.Create(typeof(CrimeDashboardDto));
@@ -23,19 +23,9 @@ public class ClusteringService
 
         var dataView = _mlContext.Data.LoadFromEnumerable(data, schema);
 
-
-        // Define the pipeline: concatenate features and apply K-Means clustering
-        // Features should be integer or float values
-        //var pipeline = _mlContext.Transforms.Concatenate("Features", nameof(CrimeDashboardDto.VictimCount), nameof(CrimeDashboardDto.ArrestMade), nameof(CrimeDashboardDto.RecurringIncident))//, nameof(CrimeData.LocationY))
-        //    .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
-
-        var pipeline = _mlContext.Transforms.Conversion.ConvertType(new[] {
-                new InputOutputColumnPair("VictimCountFloat", nameof(CrimeDashboardDto.VictimCount)),
-                new InputOutputColumnPair("ArrestMadeFloat", nameof(CrimeDashboardDto.ArrestMade)),
-                new InputOutputColumnPair("RecurringIncidentFloat", nameof(CrimeDashboardDto.RecurringIncident))
-            }, DataKind.Single) // Convert to Single (float)
-          .Append(_mlContext.Transforms.Concatenate("Features", "VictimCountFloat", "ArrestMadeFloat", "RecurringIncidentFloat"))
-          .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+        var pipeline = _mlContext.Transforms
+            .Concatenate("Features",features)
+            .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));
 
 
         // Train the model

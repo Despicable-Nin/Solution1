@@ -1,6 +1,9 @@
 ﻿@page "/datamining"
 @rendermode InteractiveServer
 
+@using BlazorApp2.Data
+@using BlazorApp2.Helpers
+@using BlazorApp2.Services
 @using BlazorApp2.Services.Clustering
 @using BlazorApp2.Services.Crimes
 @inject ClusteringService ClusteringService
@@ -24,30 +27,69 @@ else if (_clusterResults != null)
         </thead>
         <tbody>
             @foreach (var result in _clusterResults)
-        {
-            <tr>
+            {
+                <tr>
                     <td>@result.RecordId</td>
                     <td>@result.ClusterId</td>
                 </tr>
-        }
+            }
         </tbody>
     </table>
 }
 
+<h4>Select Properties to Include in Clustering</h4>
+<div class="checkbox-container">
+    @foreach (var property in CrimeProperties)
+    {
+        <div class="checkbox-item">
+            <input type="checkbox" @bind="@SelectedProperties[property]" /> @property
+        </div>
+    }
+</div>
+
 @code {
-private bool _isLoading = false;
-private List<ClusteringService.ClusterResult>? _clusterResults;
-[Inject] private ICrimeService _crimeService { get; set; } = null!;
+    private bool _isLoading = false;
+    private List<ClusteringService.ClusterResult>? _clusterResults;
+    private string[] CrimeProperties { get; set; } = Array.Empty<string>();
+    private Dictionary<string, bool> SelectedProperties { get; set; } = new();
 
-private async Task PerformClustering()
-{
-    _isLoading = true;
+    [Inject] private ICrimeService _crimeService { get; set; } = null!;
 
-    // Example data (replace this with your real data)
-    var data = await _crimeService.GetCrimesAsync(1, 1000);
+    protected override void OnInitialized()
+    {
+        // Get the property names from the Crime class
+        CrimeProperties = GenericHelper.GetProperties<Crime>();
 
-    _clusterResults = ClusteringService.PerformKMeansClustering(data.Crimes);
+        // Initialize the SelectedProperties dictionary
+        foreach (var property in CrimeProperties)
+        {
+            SelectedProperties[property] = false; // All checkboxes start unchecked
+        }
+    }
 
-    _isLoading = false;
+    private async Task PerformClustering()
+    {
+        _isLoading = true;
+
+        // Example data (replace this with your real data)
+        var data = await _crimeService.GetCrimesAsync(1, 1000);
+
+        _clusterResults = ClusteringService.PerformKMeansClustering(data.Crimes,[]);
+
+        _isLoading = false;
+    }
 }
+
+<style>
+    .checkbox-container {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap into the next line */
+    gap: 20px; /* Space between checkbox items */
 }
+
+.checkbox-item {
+    flex: 1 0 30%; /* Make each item take up to 30% of the container width */
+    min-width: 200px; /* Minimum width to ensure they don’t get too small */
+}
+
+</style>

@@ -6,6 +6,7 @@ using BlazorApp2.Repositories;
 using BlazorApp2.Repositories.Interfaces;
 using BlazorApp2.Services.Clustering;
 using BlazorApp2.Services.Crimes;
+using BlazorApp2.Services.Geocoding;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -58,6 +59,7 @@ public class Program
 
         builder.Services.AddMyRepositories();
         builder.Services.AddMyServices();
+        builder.Services.AddHttpClient<NominatimGeocodingService>();
 
 
         builder.Services.AddDataProtection()
@@ -95,7 +97,6 @@ public class Program
             app.UseHsts();
             app.UseHttpsRedirection();  // Keep this for production
         }
-
 
         app.UseHttpsRedirection();
         app.UseStaticFiles();

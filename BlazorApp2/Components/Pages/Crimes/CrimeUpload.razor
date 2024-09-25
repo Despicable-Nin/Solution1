@@ -1,8 +1,11 @@
 ﻿@using BlazorApp2.Data
 @using BlazorApp2.Helpers
+@using BlazorApp2.Services
 @using BlazorApp2.Services.Crimes
 @using BlazorApp2.Services.Enumerations
 @using Microsoft.AspNetCore.Components.Forms
+@using Nominatim.API.Web;
+ @using BlazorApp2.Services.Geocoding;
 
 <div class="container mb-4">
     <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
@@ -22,6 +25,9 @@
 
     [Inject]
     private IEnumeration enumService { get; set; } = null!;
+
+    [Inject]
+    private NominatimGeocodingService geocodingService { get; set; } = null!;
 
     private FileModel _fileModel = new FileModel();
     private bool _isLoading = false;
@@ -95,6 +101,9 @@
 
             crimes.Add(crime);
         }
+
+
+        var result = await geocodingService.GetLatLongAsync(crimes.First().Address);
 
         try
         {
@@ -173,6 +182,7 @@
         }
     }
 
+   
     record FileModel
     {
         public IBrowserFile? File { get; set; }

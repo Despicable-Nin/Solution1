@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.ML" Version="3.0.1" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageReference Include="MudBlazor" Version="7.8.0" />
+    <PackageReference Include="Nominatim.API" Version="2.0.0" />
   </ItemGroup>
 
 </Project>
