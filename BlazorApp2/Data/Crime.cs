@@ -2,7 +2,6 @@
 
 namespace BlazorApp2.Data
 {
-
     public class Crime
     {
         public Crime()

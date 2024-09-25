@@ -5,6 +5,7 @@ namespace BlazorApp2.Data
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
+        public DbSet<FatCluster> FatClusters { get; set; }
         public DbSet<Crime> Crimes { get; set; }
         public DbSet<CrimeMotive> CrimeMotives { get; set; }
         public DbSet<Weather> WeatherConditions { get; set; } 
