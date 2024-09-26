@@ -26,9 +26,7 @@
     [Inject]
     private IEnumeration enumService { get; set; } = null!;
 
-    [Inject]
-    private NominatimGeocodingService geocodingService { get; set; } = null!;
-
+  
     private FileModel _fileModel = new FileModel();
     private bool _isLoading = false;
 
@@ -55,7 +53,7 @@
         string? line;
 
         var crimes = new List<CrimeDashboardDto>();
-
+      
         while ((line = await reader.ReadLineAsync()) != null)
         {
             var columns = line.Split(',');
@@ -99,12 +97,15 @@
                     AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
                 };
 
+
+
             crimes.Add(crime);
+
+          
         }
 
 
-        var result = await geocodingService.GetLatLongAsync(crimes.First().Address);
-
+      
         try
         {
             // add crimeTypes before saving

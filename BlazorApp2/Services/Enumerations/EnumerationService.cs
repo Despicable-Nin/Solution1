@@ -153,14 +153,10 @@ namespace BlazorApp2.Services.Enumerations
         /// <returns></returns>
         public async Task<IDictionary<int, string>> GetCrimeMotives(int? key = null)
         {
-            IEnumerable<CrimeMotive> crimeMotives = [];
-            if (key.HasValue)
-            {
-                crimeMotives = await crimeMotiveRepository.GetCrimeMotivesAsync();
-                return crimeMotives.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
-            }
-
-            return crimeMotives.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+           IEnumerable<CrimeMotive> crimeMotives = await crimeMotiveRepository.GetCrimeMotivesAsync();
+           return key.HasValue ? 
+                crimeMotives.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty) : 
+                crimeMotives.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
         }
 
         /// <summary>
@@ -170,14 +166,11 @@ namespace BlazorApp2.Services.Enumerations
         /// <returns></returns>
         public async Task<IDictionary<int, string>> GetCrimeTypes(int? key = null)
         {
-            IEnumerable<CrimeType> crimeTypes = [];
-            if (key.HasValue)
-            {
-                crimeTypes = await crimeTypeRepository.GetCrimeTypesAsync();
-                return crimeTypes.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
-            }
-
-            return crimeTypes.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+            IEnumerable<CrimeType> crimeTypes = await crimeTypeRepository.GetCrimeTypesAsync();
+          return key.HasValue ?
+                crimeTypes.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                crimeTypes.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+           
         }
 
         /// <summary>
@@ -188,13 +181,9 @@ namespace BlazorApp2.Services.Enumerations
         public async Task<IDictionary<int, string>> GetPoliceDistricts(int? key = null)
         {
             IEnumerable<PoliceDistrict> policeDistricts = [];
-            if (key.HasValue)
-            {
-                policeDistricts = await policeDistrictRepository.GetPoliceDistrictsAsync();
-                return policeDistricts.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
-            }
-
-            return policeDistricts.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+            return key.HasValue ? 
+                policeDistricts.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                policeDistricts.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
         }
 
         /// <summary>
@@ -205,13 +194,10 @@ namespace BlazorApp2.Services.Enumerations
         public async Task<IDictionary<int, string>> GetSeverities(int? key = null)
         {
             IEnumerable<Severity> severities = [];
-            if (key.HasValue)
-            {
-                severities = await severityRepository.GetSeveritiesAsync();
-                return severities.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
-            }
-
-            return severities.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+            return key.HasValue ? 
+                severities.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                severities.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+      
         }
 
         /// <summary>
@@ -222,13 +208,9 @@ namespace BlazorApp2.Services.Enumerations
         public async Task<IDictionary<int, string>> GetWeatherConditions(int? key = null)
         {
             IEnumerable<Weather> weatherConditions = [];
-            if (key.HasValue)
-            {
-                weatherConditions = await weatherRepository.GetWeatherConditionsAsync ();
-                return weatherConditions.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
-            }
-
-            return weatherConditions.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+            return key.HasValue ? 
+                weatherConditions.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                weatherConditions.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
         }
     }
 }

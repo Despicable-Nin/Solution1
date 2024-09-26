@@ -69,6 +69,7 @@ public class CrimeService : ICrimeService
             CCTVCoverage = c.CCTVCoverage,
             CrimeMotive = c.CrimeMotive,
             CrimeType = c.CrimeType,
+            Date = c.Date.ToString("u"),
             Description = c.Description,
             MedianIncome = c.MedianIncome.ToString(),
             NearbyLandmarks = c.NearbyLandmarks,

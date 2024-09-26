@@ -1,0 +1,202 @@
+﻿@page "/datamining"
+@rendermode InteractiveServer
+
+@using BlazorApp2.Data
+@using BlazorApp2.Helpers
+@using BlazorApp2.Services
+@using BlazorApp2.Services.Clustering
+@using BlazorApp2.Services.Crimes
+@using BlazorApp2.Services.Enumerations
+@using BlazorApp2.Services.Geocoding
+@using System.Collections.Concurrent
+@using static BlazorApp2.Services.Clustering.ClusteringService
+@inject IClusteringService ClusteringService
+@inject ICrimeService CrimeService
+@inject IEnumeration EnumService
+@inject NominatimGeocodingService GeocodingService
+
+<h3>K-Means Clustering Results</h3>
+
+<button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
+<button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
+
+<hr />
+<div class="checkbox-container">
+    @foreach (var property in FlatClusterProperties)
+    {
+        if(property == nameof(FlatCluster.CaseID))
+        {
+            <div class="checkbox-item" >
+                <input type="checkbox" @bind="@SelectedProperties[property]" disabled /> @property
+            </div>
+        }else
+        {
+            <div class="checkbox-item">
+                <input type="checkbox" @bind="@SelectedProperties[property]" /> @property
+            </div>
+        }
+
+    }
+</div>
+<hr />
+@if (IsLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <p><em>Loading data, please wait...</em></p>
+    </div>
+}
+else if (ClusterResults != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Record ID</th>
+                <th>Cluster ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in ClusterResults)
+            {
+                <tr>
+                    <td>@result.RecordId</td>
+                    <td>@result.ClusterId</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<style>
+    .checkbox-container {
+        display: flex;
+        flex-wrap: wrap; /* Allow items to wrap into the next line */
+        gap: 20px; /* Space between checkbox items */
+        max-height: 200px; /* Set a maximum height for the container */
+        overflow-y: auto; /* Enable vertical scrollbar if content overflows */
+    }
+
+    .checkbox-item {
+        flex: 1 0 30%; /* Make each item take up to 30% of the container width */
+        min-width: 200px; /* Minimum width to ensure they don’t get too small */
+    }
+</style>
+
+@code {
+    private bool IsLoading = false;
+
+    private string[] FlatClusterProperties { get; set; } = [];
+    private Dictionary<string, bool> SelectedProperties { get; set; } = [];
+    private List<ClusterResult>? ClusterResults = [];
+    private List<FlatCluster> FlatClusterDump = [];
+
+
+    private bool HasFlatClusters => FlatClusterDump.Count > 0;
+
+
+    protected override void OnInitialized()
+    {
+        // Get the property names from the Crime class
+        FlatClusterProperties = GenericHelper.GetProperties<FlatCluster>().Except(["Id"]).ToArray();
+
+        // Initialize the SelectedProperties dictionary
+        foreach (var property in FlatClusterProperties)
+        {
+            SelectedProperties[property] = false; // All checkboxes start unchecked
+            if(property == nameof(FlatCluster.CaseID)){
+                SelectedProperties[property] = true; // CaseID is selected by default
+            }
+          
+        }
+    }
+
+    private async Task PerformClustering()
+    {
+        IsLoading = true;
+
+        FlatClusterDump = (await ClusteringService.GetFlatClustersAsync()).ToList();
+
+        if (FlatClusterDump.Count == 0)
+        {
+            // Fetch data to transform
+            var data = await CrimeService.GetCrimesAsync(1, int.MaxValue);
+            var crimeMotives = await EnumService.GetCrimeMotives();
+            var crimeTypes = await EnumService.GetCrimeTypes();
+            var severities = await EnumService.GetSeverities();
+            var precincts = await EnumService.GetPoliceDistricts();
+            var weathers = await EnumService.GetWeatherConditions();
+
+            var addressBook = new ConcurrentDictionary<string, (double Latitude, double Longitude)>();
+            foreach (var crime in data.Crimes)
+            {
+                (double Latitude, double Longitude) result = (0D, 0D);
+                if (addressBook.ContainsKey(crime.Address))
+                {
+                    result = addressBook.GetValueOrDefault(crime.Address);
+                }
+                else
+                {
+                    result = await GeocodingService.GetLatLongAsync(crime.Address);
+                    addressBook.TryAdd(crime.Address, (result.Latitude, result.Longitude));
+                    await Task.Delay(1000);
+                }
+            }
+
+            // Save first -- generate a temporary data table
+            foreach (var crime in data.Crimes)
+            {
+                var date = DateTime.Parse(crime.Date);
+                var flatCluster = new FlatCluster
+                    {
+                        NearbyLandmarkLatitude = "0",
+                        NearbyLandmarkLongitude = "0",
+                        CaseID = crime.CaseID.ToString(),
+                        CrimeType = crimeTypes.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
+                        Date = date.Ticks.ToString(),
+                        Time = crime.Time.Ticks.ToString(),
+                        Latitude = addressBook.GetValueOrDefault(crime.Address).Latitude.ToString(),
+                        Longitude = addressBook.GetValueOrDefault(crime.Address).Longitude.ToString(), // Corrected Longitude assignment
+                        Severity = severities.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
+                        VictimCount = crime.VictimCount.ToString(),
+                        ArrestMade = crime.ArrestMade.ToString(),
+                        ArrestDate = crime.ArrestDate,
+                        ResponseTimeInMinutes = crime.ResponseTimeInMinutes.ToString(),
+                        PoliceDistrict = precincts.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        WeatherCondition = weathers.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        CrimeMotive = crimeMotives.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        RecurringIncident = crime.RecurringIncident.ToString(),
+                        PopulationDensityPerSqKm = crime.PopulationDensityPerSqKm.ToString(),
+                        UnemploymentRate = crime.UnemploymentRate,
+                        MedianIncome = crime.MedianIncome,
+                        ProximityToPoliceStationInKm = crime.ProximityToPoliceStationInKm,
+                        StreetLightPresent = (crime.StreetLightPresent ? 1 : 0).ToString(),
+                        CCTVCoverage = (crime.CCTVCoverage ? 1 : 0).ToString(),
+                        AlcoholOrDrugInvolvement = (crime.AlcoholOrDrugInvolvement ? 1 : 0).ToString(),
+                    };
+
+                FlatClusterDump.Add(flatCluster);
+            }
+
+            await ClusteringService.AddFlatClusterRangeAsync(FlatClusterDump);
+        }
+
+        var features = SelectedProperties.Where(x => x.Value).Select(x => x.Key).ToArray();
+        ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, 3);
+        IsLoading = false;
+    }
+
+    private async Task DeleteAllClusters()
+    {
+        IsLoading = true;
+
+        // Call the delete method from the service
+        await ClusteringService.DeleteAllFlatClustersAsync();
+
+        // Optionally clear cluster results if needed
+        ClusterResults = null;
+
+        IsLoading = false;
+    }
+}

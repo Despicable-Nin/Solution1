@@ -3,6 +3,7 @@ using BlazorApp2.Repositories;
 using BlazorApp2.Services.Clustering;
 using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Enumerations;
+using BlazorApp2.Services.Geocoding;
 
 namespace BlazorApp2.Helpers;
 
@@ -12,7 +13,8 @@ public static class IServicesCollectionExtensions
     {
         services.AddScoped<ICrimeService, CrimeService>();
         services.AddScoped<IEnumeration, EnumerationService>();
-        services.AddSingleton<ClusteringService>();
+        services.AddScoped<IClusteringService, ClusteringService>();
+        services.AddSingleton<NominatimGeocodingService>();
 
         return services;
     }
@@ -25,7 +27,7 @@ public static class IServicesCollectionExtensions
         services.AddScoped<IPoliceDistrictRepository, PoliceDistrictRepository>();
         services.AddScoped<ISeverityRepository, SeverityRepository>();
         services.AddScoped<IWeatherRepository, WeatherConRepository>();
-        services.AddSingleton<ClusteringService>();
+        services.AddScoped<IFlatClusterRepository, FlatClusterRepository>();
 
         return services;
     }

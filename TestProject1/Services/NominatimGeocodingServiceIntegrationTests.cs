@@ -13,6 +13,7 @@ namespace TestProject1.Services
         }
 
         [Theory]
+        [InlineData("Lakas Bisig Street, Bayanan, Muntinlupa, 1772 Metro Manila, Philippines", 14.406630992869177, 121.04184362468547)]
         [InlineData("Bayanan, Muntinlupa City", 14.406790, 121.046130)]
         [InlineData("Bacao 1, General Trias, Cavite", 14.400620, 120.885850)]
         [InlineData("Tunasan, Muntinlupa City", 14.368450, 121.031036)]
