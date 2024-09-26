@@ -123,7 +123,7 @@ namespace BlazorApp2.Migrations
                     b.Property<DateTime>("DateUploaded")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2024, 9, 25, 13, 59, 22, 903, DateTimeKind.Local).AddTicks(2562));
+                        .HasDefaultValue(new DateTime(2024, 9, 26, 17, 37, 24, 516, DateTimeKind.Local).AddTicks(2181));
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -215,85 +215,114 @@ namespace BlazorApp2.Migrations
                     b.ToTable("CrimeTypes");
                 });
 
-            modelBuilder.Entity("BlazorApp2.Data.FatCluster", b =>
+            modelBuilder.Entity("BlazorApp2.Data.FlatCluster", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("AlcoholOrDrugInvolvement")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ArrestDate")
                         .HasColumnType("int");
 
-                    b.Property<int>("ArrestMade")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("CCTVCoverage")
-                        .HasColumnType("bit");
+                    b.Property<string>("AlcoholOrDrugInvolvement")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CaseID")
-                        .HasColumnType("int");
+                    b.Property<string>("ArrestDate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CrimeMotive")
-                        .HasColumnType("int");
+                    b.Property<string>("ArrestMade")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CrimeType")
-                        .HasColumnType("int");
+                    b.Property<string>("CCTVCoverage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Date")
-                        .HasColumnType("int");
+                    b.Property<string>("CaseID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<double>("Latitude")
-                        .HasColumnType("float");
+                    b.Property<string>("CrimeMotive")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("Longitude")
-                        .HasColumnType("float");
+                    b.Property<string>("CrimeType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("MedianIncome")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("Date")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("NearbyLandmarkLatitude")
-                        .HasColumnType("float");
+                    b.Property<string>("Latitude")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("NearbyLandmarkLongitude")
-                        .HasColumnType("float");
+                    b.Property<string>("Longitude")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PoliceDistrict")
-                        .HasColumnType("int");
+                    b.Property<string>("MedianIncome")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PopulationDensityPerSqKm")
-                        .HasColumnType("int");
+                    b.Property<string>("NearbyLandmarkLatitude")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("ProximityToPoliceStationInKm")
-                        .HasColumnType("float");
+                    b.Property<string>("NearbyLandmarkLongitude")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RecurringIncident")
-                        .HasColumnType("int");
+                    b.Property<string>("PoliceDistrict")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ResponseTimeInMinutes")
-                        .HasColumnType("int");
+                    b.Property<string>("PopulationDensityPerSqKm")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Severity")
-                        .HasColumnType("int");
+                    b.Property<string>("ProximityToPoliceStationInKm")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("StreetLightPresent")
-                        .HasColumnType("bit");
+                    b.Property<string>("RecurringIncident")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Time")
-                        .HasColumnType("int");
+                    b.Property<string>("ResponseTimeInMinutes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("UnemploymentRate")
-                        .HasColumnType("float");
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("VictimCount")
-                        .HasColumnType("int");
+                    b.Property<string>("StreetLightPresent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("WeatherCondition")
-                        .HasColumnType("int");
+                    b.Property<string>("Time")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UnemploymentRate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VictimCount")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WeatherCondition")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CaseID")
+                        .IsUnique();
 
                     b.ToTable("FatClusters");
                 });
