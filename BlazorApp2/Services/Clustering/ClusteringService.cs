@@ -26,7 +26,7 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
         var inputColumnNames = inputOutputColumnPairs.Select(x => x.OutputColumnName).ToArray();
 
-        IEstimator<ITransformer> pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
+       var pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
         .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
         .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters));  // Specify number of clusters
 
@@ -41,9 +41,10 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
         return clusterPredictions.Select((p, index) => new ClusterResult
         {
-            RecordId = index + 1, // Can be based on your data's primary key
+            //RecordId = index + 1, // Can be based on your data's primary key
             ClusterId = p.PredictedClusterId,
-
+            Latitude = p.Latitude,
+            Longitude = p.Longitude,
 
         }).ToList();
     }

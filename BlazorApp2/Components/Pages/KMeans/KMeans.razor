@@ -65,16 +65,18 @@ else if (ClusterResults != null)
     <table class="table">
         <thead>
             <tr>
-                <th>Record ID</th>
                 <th>Cluster ID</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var result in ClusterResults)
             {
                 <tr>
-                    <td>@result.RecordId</td>
                     <td>@result.ClusterId</td>
+                    <td>@result.Latitude</td>
+                    <td>@result.Longitude</td>
                 </tr>
             }
         </tbody>
