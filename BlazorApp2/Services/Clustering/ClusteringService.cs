@@ -12,8 +12,8 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
     public List<ClusterResult> PerformKMeansClustering(IEnumerable<FlatCluster> data, string[] features, int numberOfClusters = 3)
     {
-        Log.Logger.Information("PerformKMeansClustering",data, features, numberOfClusters);
-      
+        Log.Logger.Information("PerformKMeansClustering", data, features, numberOfClusters);
+
         // Convert the input data into an IDataView (ML.NET data structure)
         var schema = SchemaDefinition.Create(typeof(FlatCluster));
 
@@ -26,9 +26,9 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
         var inputColumnNames = inputOutputColumnPairs.Select(x => x.OutputColumnName).ToArray();
 
-       var pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
-        .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
-        .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters));  // Specify number of clusters
+        var pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
+         .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
+         .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters));  // Specify number of clusters
 
         // Train the model
         var model = pipeline.Fit(dataView);
@@ -39,14 +39,17 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
         // Extract cluster assignments
         var clusterPredictions = _mlContext.Data.CreateEnumerable<ClusterPrediction>(predictions, reuseRowObject: false).ToList();
 
-        return clusterPredictions.Select((p, index) => new ClusterResult
-        {
-            //RecordId = index + 1, // Can be based on your data's primary key
-            ClusterId = p.PredictedClusterId,
-            Latitude = p.Latitude,
-            Longitude = p.Longitude,
+        var temp = clusterPredictions
+          .GroupBy(p => new {p.Latitude, p.Longitude}) // Group by cluster ID
+          .Select(group => new ClusterResult// Create anonymous object for each group
+          {
+              Count = group.Count(), // Number of elements in the group
+              Latitude = group.First().Latitude, // Latitude of the first element in the group
+              Longitude = group.First().Longitude // Longitude of the first element in the group
+          })
+          .ToArray(); // Convert to an array
 
-        }).ToList();
+        return temp.OrderBy(x => x.Count).ToList();
     }
 
     //these methods are for the CRUD operations -- might move them to a separate service

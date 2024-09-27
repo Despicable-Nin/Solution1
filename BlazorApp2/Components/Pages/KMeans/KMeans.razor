@@ -65,7 +65,7 @@ else if (ClusterResults != null)
     <table class="table">
         <thead>
             <tr>
-                <th>Cluster ID</th>
+                <th>Crime(s)</th>
                 <th>Latitude</th>
                 <th>Longitude</th>
             </tr>
@@ -74,7 +74,7 @@ else if (ClusterResults != null)
             @foreach (var result in ClusterResults)
             {
                 <tr>
-                    <td>@result.ClusterId</td>
+                    <td>@result.Count</td>
                     <td>@result.Latitude</td>
                     <td>@result.Longitude</td>
                 </tr>
