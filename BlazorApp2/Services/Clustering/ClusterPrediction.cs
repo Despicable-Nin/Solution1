@@ -7,5 +7,8 @@ public partial class ClusteringService
     {
         [ColumnName("PredictedLabel")]
         public uint PredictedClusterId { get; set; }
+
+        [ColumnName("CaseID")]
+        public string CaseId { get; set; }
     }
 }
