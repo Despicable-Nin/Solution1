@@ -16,6 +16,20 @@
     networks:
       - app-network
 
+  seq:
+    image: datalust/seq:latest
+    container_name: seq
+    ports:
+      - "5341:80" # Mapping port 80 in the container to 5341 on the host
+    volumes:
+      - seq_data:/data
+    environment:
+      - SEQ_API_KEY=your_api_key_here 
+      - ACCEPT_EULA=Y  # Accept EULA
+    restart: unless-stopped  # Add this line for the restart policy
+    networks:
+      - app-network
+
   blazorapp:
     image: blazorapp2:latest
     build:
@@ -26,15 +40,19 @@
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=kardb;User Id=sa;Password=${SA_PASSWORD:-someThingComplicated1234};TrustServerCertificate=True;MultiSubnetFailover=True
       - ASPNETCORE_DATA_PROTECTION__PATH=/var/dpkeys
+      - Seq__ServerUrl=http://seq:80 # Update to match the new port
+      - Seq__ApiKey=your_api_key_here # Optional, set if you want to secure API access
     volumes:
       - dpkeys:/var/dpkeys
     depends_on:
       - sqlserver
+      - seq
     networks:
       - app-network
 
 volumes:
   sqlserver_data:
+  seq_data:
   dpkeys:
 
 networks:

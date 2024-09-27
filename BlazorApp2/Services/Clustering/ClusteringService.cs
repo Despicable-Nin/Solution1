@@ -1,9 +1,11 @@
 ﻿using BlazorApp2.Data;
 using BlazorApp2.Repositories.Interfaces;
+using BlazorApp2.Services.Crimes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.Transforms;
+using Serilog;
 
 namespace BlazorApp2.Services.Clustering;
 public partial class ClusteringService(IFlatClusterRepository flatClusterRepository) : IClusteringService
@@ -13,6 +15,7 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
     public List<ClusterResult> PerformKMeansClustering(IEnumerable<FlatCluster> data, string[] features, int numberOfClusters = 3)
     {
+        Log.Logger.Information("PerformKMeansClustering",data, features, numberOfClusters);
         // Convert the input data into an IDataView (ML.NET data structure)
         var schema = SchemaDefinition.Create(typeof(FlatCluster));
 
@@ -21,9 +24,18 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
         var dataView = _mlContext.Data.LoadFromEnumerable(data, schema);
 
         //we are making this non-negotiable
-        var pipeline = _mlContext.Transforms.Conversion.ConvertType(outputColumnName: "CaseID_Single", inputColumnName: "CaseID", outputKind: DataKind.Single);
+        //var pipeline = _mlContext.Transforms.Conversion.ConvertType(outputColumnName: "CaseID_Single", inputColumnName: "CaseID", outputKind: DataKind.Single);
 
-        Append(features, pipeline);
+        var inputOutputColumnPairs = features.Select(x => new InputOutputColumnPair($"{x}_Single", x)).ToArray();
+        Log.Logger.Information("inputOutputColumnPairs: {inputOutputColumnPairs}", inputOutputColumnPairs);
+
+        var inputColumnNames = inputOutputColumnPairs.Select(x => x.OutputColumnName).ToArray();
+
+        IEstimator<ITransformer> pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
+        .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
+        .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+
+        //Append(features, pipeline);
 
         // Train the model
         var model = pipeline.Fit(dataView);
@@ -43,7 +55,7 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
         }).ToList();
     }
 
-    private void Append(string[] features, TypeConvertingEstimator pipeline)
+    private void Append(string[] features, IEstimator<ITransformer> pipeline)
     {
         var hotEncodes = new List<string>();
         var transformers = new List<string>();

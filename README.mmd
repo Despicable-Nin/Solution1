@@ -26,3 +26,11 @@ sequenceDiagram
     end
 
     User-->>Map: View Map with Clustered Points and Centroids
+
+
+```
+docker
+
+docker rmi -f $(docker images -q)
+docker image prune -a -f
+```

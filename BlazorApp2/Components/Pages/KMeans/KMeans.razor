@@ -9,7 +9,6 @@
 @using BlazorApp2.Services.Enumerations
 @using BlazorApp2.Services.Geocoding
 @using System.Collections.Concurrent
-@using static BlazorApp2.Services.Clustering.ClusteringService
 @inject IClusteringService ClusteringService
 @inject ICrimeService CrimeService
 @inject IEnumeration EnumService
@@ -17,7 +16,7 @@
 
 <h3>K-Means Clustering Results</h3>
 
-<button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
+<button class="btn btn-primary" @onclick="PerformClustering"  >Perform Clustering</button>
 <button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
 
 <hr />
@@ -86,6 +85,7 @@ else if (ClusterResults != null)
 
 @code {
     private bool IsLoading = false;
+    private int SelectedCount { get; set; } = 0;
 
     private string[] FlatClusterProperties { get; set; } = [];
     private Dictionary<string, bool> SelectedProperties { get; set; } = [];
@@ -114,6 +114,7 @@ else if (ClusterResults != null)
 
     private async Task PerformClustering()
     {
+
         IsLoading = true;
 
         FlatClusterDump = (await ClusteringService.GetFlatClustersAsync()).ToList();
@@ -182,7 +183,11 @@ else if (ClusterResults != null)
             await ClusteringService.AddFlatClusterRangeAsync(FlatClusterDump);
         }
 
-        var features = SelectedProperties.Where(x => x.Value).Select(x => x.Key).ToArray();
+        var features = SelectedProperties
+        .Where(x => x.Value)
+        .Where(x => x.Key != nameof(FlatCluster.CaseID))
+        .Select(x => x.Key).ToArray();
+
         ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, 3);
         IsLoading = false;
     }

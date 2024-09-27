@@ -29,5 +29,10 @@ RUN dotnet publish "./BlazorApp2.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "BlazorApp2.dll"]
 
+# Configuration for Serilog with Seq
+ENV Seq__ServerUrl=http://seq:5341
+# ENV Seq__ApiKey=your_api_key_here 
+# Optional, set if you want to secure API access
+
+ENTRYPOINT ["dotnet", "BlazorApp2.dll"]

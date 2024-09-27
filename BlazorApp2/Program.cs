@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using System;
 
 namespace BlazorApp2;
@@ -20,7 +21,21 @@ public class Program
 
     public static void Main(string[] args)
     {
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug() // Set minimum log level
+            .Enrich.FromLogContext()
+            .WriteTo.Console() // Log to console (optional)
+            .WriteTo.Seq("http://seq:5341") // Set Seq URL
+            .CreateLogger();
+
+
+
         var builder = WebApplication.CreateBuilder(args);
+
+
+        // Use Serilog for logging
+        builder.Host.UseSerilog();
 
         // Add services to the container.
         builder.Services.AddRazorComponents()
