@@ -16,19 +16,20 @@
 
 <h3>K-Means Clustering Results</h3>
 
-<button class="btn btn-primary" @onclick="PerformClustering"  >Perform Clustering</button>
+<button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
 <button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
 
 <hr />
 <div class="checkbox-container">
     @foreach (var property in FlatClusterProperties)
     {
-        if(property == nameof(FlatCluster.CaseID))
+        if (property == nameof(FlatCluster.CaseID))
         {
-            <div class="checkbox-item" >
+            <div class="checkbox-item">
                 <input type="checkbox" @bind="@SelectedProperties[property]" disabled /> @property
             </div>
-        }else
+        }
+        else
         {
             <div class="checkbox-item">
                 <input type="checkbox" @bind="@SelectedProperties[property]" /> @property
@@ -101,14 +102,21 @@ else if (ClusterResults != null)
         // Get the property names from the Crime class
         FlatClusterProperties = GenericHelper.GetProperties<FlatCluster>().Except(["Id"]).ToArray();
 
+        var initialProperties = new[]{nameof(FlatCluster.CaseID),
+        nameof(FlatCluster.CrimeType),
+        nameof(FlatCluster.Latitude),
+        nameof(FlatCluster.Longitude)};
+
+
         // Initialize the SelectedProperties dictionary
         foreach (var property in FlatClusterProperties)
         {
             SelectedProperties[property] = false; // All checkboxes start unchecked
-            if(property == nameof(FlatCluster.CaseID)){
+            if (initialProperties.Contains(property))
+            {
                 SelectedProperties[property] = true; // CaseID is selected by default
             }
-          
+
         }
     }
 
