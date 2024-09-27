@@ -15,29 +15,41 @@
 @inject NominatimGeocodingService GeocodingService
 
 <h3>K-Means Clustering Results</h3>
-
-<button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
-<button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
-
-<hr />
-<div class="checkbox-container">
-    @foreach (var property in FlatClusterProperties)
-    {
-        if (property == nameof(FlatCluster.CaseID))
-        {
-            <div class="checkbox-item">
-                <input type="checkbox" @bind="@SelectedProperties[property]" disabled /> @property
+<div class="container">
+    <div class="row">
+        <div class="col-6 col-sm-12 mb-3">
+            <div class="form-group">
+                <label for="numberOfClusters">Number of Clusters</label>
+                <div class="input-group">
+                    <input type="number" class="form-control col-sm-3" id="numberOfClusters" @bind="NumberOfCluster" placeholder="Number of cluster" min="3" aria-label="Number of cluster" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
+                        <button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
+                    </div>
+                </div>
             </div>
-        }
-        else
+        </div>
+        <div class="col-6 col-sm-12">
+            <div class="form-check checkbox-aligner">
+                <input class="form-check-input mb-2" type="checkbox" id="showCheckboxes" @bind="ShowCheckboxes">
+                <label class="form-check-label" for="showCheckboxes">&nbsp;Hide/Show Cluster Properties</label>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="checkbox-container" style="@(ShowCheckboxes ? "" : "display: none;")">
+        @foreach (var property in FlatClusterProperties)
         {
             <div class="checkbox-item">
                 <input type="checkbox" @bind="@SelectedProperties[property]" /> @property
             </div>
         }
-
-    }
+    </div>
 </div>
+
+
+
 <hr />
 @if (IsLoading)
 {
@@ -82,11 +94,18 @@ else if (ClusterResults != null)
         flex: 1 0 30%; /* Make each item take up to 30% of the container width */
         min-width: 200px; /* Minimum width to ensure they don’t get too small */
     }
+
+    .checkbox-aligner {
+        display: flex;
+        align-items: center;
+    }
 </style>
 
 @code {
+    private bool ShowCheckboxes = true;
     private bool IsLoading = false;
     private int SelectedCount { get; set; } = 0;
+    private int NumberOfCluster { get; set; } = 3;
 
     private string[] FlatClusterProperties { get; set; } = [];
     private Dictionary<string, bool> SelectedProperties { get; set; } = [];
@@ -196,7 +215,7 @@ else if (ClusterResults != null)
         .Where(x => x.Key != nameof(FlatCluster.CaseID))
         .Select(x => x.Key).ToArray();
 
-        ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, 3);
+        ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, NumberOfCluster);
         IsLoading = false;
     }
 

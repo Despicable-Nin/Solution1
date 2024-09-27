@@ -28,7 +28,7 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
         IEstimator<ITransformer> pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
         .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
-        .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: 3));  // Specify number of clusters
+        .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters));  // Specify number of clusters
 
         // Train the model
         var model = pipeline.Fit(dataView);
