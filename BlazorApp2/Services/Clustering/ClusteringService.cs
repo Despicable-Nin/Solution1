@@ -28,7 +28,7 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
 
         var pipeline = _mlContext.Transforms.Conversion.ConvertType(inputOutputColumnPairs, DataKind.Single) // Convert to Single (float)
          .Append(_mlContext.Transforms.Concatenate("Features", inputColumnNames))
-         .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters));  // Specify number of clusters
+         .Append(_mlContext.Clustering.Trainers.KMeans("Features", numberOfClusters: numberOfClusters ));  // Specify number of clusters
 
         // Train the model
         var model = pipeline.Fit(dataView);
@@ -36,8 +36,29 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
         // Make predictions
         var predictions = model.Transform(dataView);
 
+        var centroidModelParameters = model.LastTransformer.Model;
+
+        // Get Centroids using `GetClusterCentroids`
+        VBuffer<float>[] centroids = null;
+        centroidModelParameters.GetClusterCentroids(ref centroids, out int numFeatures);
+
+        // Output Centroids
+        Console.WriteLine("Centroids:");
+        for (int i = 0; i < centroids.Length; i++)
+        {
+            var centroidArray = centroids[i].DenseValues().ToArray();
+            Console.WriteLine($"Cluster {i} Centroid: {string.Join(", ", centroidArray)}");
+        }
+
+
         // Extract cluster assignments
         var clusterPredictions = _mlContext.Data.CreateEnumerable<ClusterPrediction>(predictions, reuseRowObject: false).ToList();
+
+        Console.WriteLine("Cluster Assignments:");
+        foreach (var cluster in clusterPredictions)
+        {
+            Console.WriteLine($"Cluster: {cluster.PredictedClusterId}, Features: {string.Join(", ", cluster.CaseId)}");
+        }
 
         var temp = clusterPredictions
           .GroupBy(p => new {p.Latitude, p.Longitude}) // Group by cluster ID
