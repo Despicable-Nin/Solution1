@@ -13,19 +13,19 @@
 Welcome to your map.
 
 
-<OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="new Coordinate(initX, initY)">
+<OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="new Coordinate(initialLongitude, initialLatitude)">
    
     <Features>
-        @foreach (var i in Enumerable.Range(1, 10))
-        {
-            <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(initX + (.2 * i), initY)"></Marker>
-        }
+
+        <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(121.046268, 14.374663)"></Marker>
+        <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(121.047309, 14.373460)"></Marker>
+      
     </Features>
 </OpenStreetMap>
 
 @code {
     private IEnumerable<ClusterResult> Clusters = [];
-    private float initX = 121.04763778648794F, initY = 14.372935416829094F;
+    private float initialLongitude = 121.04763778648794F, initialLatitude = 14.372935416829094F;
 
     protected override Task OnInitializedAsync()
     {
