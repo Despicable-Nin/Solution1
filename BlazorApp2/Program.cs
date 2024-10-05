@@ -2,17 +2,12 @@ using BlazorApp2.Components;
 using BlazorApp2.Components.Account;
 using BlazorApp2.Data;
 using BlazorApp2.Helpers;
-using BlazorApp2.Repositories;
-using BlazorApp2.Repositories.Interfaces;
-using BlazorApp2.Services.Clustering;
-using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Geocoding;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using System;
 
 namespace BlazorApp2;
 
@@ -118,7 +113,7 @@ public class Program
         app.UseAntiforgery();
 
         app.MapRazorComponents<App>()
-            .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode();
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
