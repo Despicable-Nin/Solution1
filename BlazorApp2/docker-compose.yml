@@ -18,7 +18,7 @@
 
   seq:
     image: datalust/seq:latest
-    container_name: seq
+    container_name: myseq
     ports:
       - "5341:80" # Mapping port 80 in the container to 5341 on the host
     volumes:
