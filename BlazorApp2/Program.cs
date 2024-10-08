@@ -1,3 +1,4 @@
+using BlazorApp2.BackgroundService;
 using BlazorApp2.Components;
 using BlazorApp2.Components.Account;
 using BlazorApp2.Data;
@@ -61,6 +62,9 @@ public class Program
         builder.Services.AddMyRepositories();
         builder.Services.AddMyServices();
         builder.Services.AddHttpClient<NominatimGeocodingService>();
+
+     
+
 
 
         builder.Services.AddDataProtection()

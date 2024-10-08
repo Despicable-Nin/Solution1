@@ -4,6 +4,7 @@ using BlazorApp2.Services.Clustering;
 using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Enumerations;
 using BlazorApp2.Services.Geocoding;
+using BlazorApp2.BackgroundService;
 
 namespace BlazorApp2.Helpers;
 
@@ -28,7 +29,16 @@ public static class IServicesCollectionExtensions
         services.AddScoped<ISeverityRepository, SeverityRepository>();
         services.AddScoped<IWeatherRepository, WeatherConRepository>();
         services.AddScoped<IFlatClusterRepository, FlatClusterRepository>();
+        services.AddScoped<IJobRepository, JobRepository>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddMyBackgroundServices(this IServiceCollection services)
+    {
+        // Register the background service
+        services.AddHostedService<UploadBackgroundService>();
+        services.AddHostedService<GISBackgroundService>();
         return services;
     }
 }
