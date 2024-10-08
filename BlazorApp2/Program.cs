@@ -41,15 +41,6 @@ public class Program
         builder.Services.AddScoped<IdentityRedirectManager>();
         builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-        builder.Services.AddMyServices();
-
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = IdentityConstants.ApplicationScheme;
-            options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-        })
-            .AddIdentityCookies();
-
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException($"Connection string 'DefaultConnection' not found.");
@@ -60,7 +51,7 @@ public class Program
             options.UseSqlServer(connectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = true)
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
@@ -78,19 +69,7 @@ public class Program
         var app = builder.Build();
 
         // Apply migrations automatically at startup
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            try
-            {
-                dbContext.Database.Migrate();
-                Console.WriteLine("Database migration applied successfully.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred during migration: {ex.Message}");
-            }
-        }
+        ApplyMigrationAndSeedDatabase(app);
 
 
         // Configure the HTTP request pipeline.
@@ -119,5 +98,58 @@ public class Program
         app.MapAdditionalIdentityEndpoints();
 
         app.Run();
+    }
+
+    private static void ApplyMigrationAndSeedDatabase(WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        try
+        {
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migration applied successfully.");
+
+            // Check for existing admin user
+            var adminUser = userManager.FindByNameAsync("admin").Result;
+            if (adminUser == null)
+            {
+                // Create admin user with desired password
+                var newAdminUser = new ApplicationUser { UserName = "admin@io.com", Email = "admin@io.com" };
+                newAdminUser.EmailConfirmed = true;
+
+                // Replace "password" with a strong password
+                var createResult = userManager.CreateAsync(newAdminUser, "P@ssword1234!").Result;
+
+                if (createResult.Succeeded)
+                {
+                    // Assign admin role (if applicable)
+                    var adminRole = roleManager.FindByNameAsync("Administrators").Result; // 
+                    if (adminRole == null)
+                    {
+                        adminRole = new IdentityRole("Administrators");
+                        roleManager.CreateAsync(adminRole).ConfigureAwait(false);
+                    }
+                    userManager.AddToRoleAsync(newAdminUser, adminRole.Name).ConfigureAwait(false);
+                    Console.WriteLine("Admin user created successfully.");
+                }
+                else
+                {
+                    Console.WriteLine($"Error creating admin user: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Admin user already exists.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred during migration or user creation: {ex.Message}");
+            Log.Error(ex, "Error during migration or user creation"); // Log exception for debugging
+        }
     }
 }

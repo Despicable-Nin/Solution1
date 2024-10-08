@@ -83,18 +83,19 @@ else if (ClusterResults != null)
     </table>
 }
 
-<div class="container">
-    <OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="new Coordinate(121.04763778648794, 14.372935416829094)">
-   
-    <Features>
-        @foreach (var i in Enumerable.Range(0, 10))
-        {
-            <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(1 + (1 * i), 1)"></Marker>
-        }
-        <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(1+2, 1+2)"></Marker>
-    </Features>
-</OpenStreetMap>
-</div>
+
+    <div class="container">
+        <OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="new Coordinate(initialLongitude, initialLatitude)">
+
+            <Features>
+                @foreach (var cluster in ClusterResults)
+                {
+                    <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(@cluster.Longitude, @cluster.Latitude)"></Marker>
+                }
+            </Features>
+        </OpenStreetMap>
+    </div>
+
 
 <style>
     .checkbox-container {
