@@ -13,6 +13,7 @@ namespace BlazorApp2.Data
         public DbSet<PoliceDistrict> PoliceDistricts { get; set; }
         public DbSet<Severity> Severity { get; set; }
         public DbSet<CrimeType> CrimeTypes { get; set; }
+        public DbSet<Job> Jobs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

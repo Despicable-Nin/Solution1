@@ -12,6 +12,9 @@ namespace BlazorApp2.Data
         public string CrimeType { get; set; } // Converted from int
         public string Date { get; set; } // Might require specific conversion logic
         public string Time { get; set; } // Might require specific conversion logic
+        public string RawAddress { get; set; }
+        public string RawDate { get; set; }
+        public string RawTime { get; set; }
         public string Latitude { get; set; }
         public string Longitude { get; set; }
         public string Severity { get; set; } // Converted from int (assuming a numerical severity scale)
@@ -33,5 +36,24 @@ namespace BlazorApp2.Data
         public string StreetLightPresent { get; set; } // Converted from bool (assuming 1 for present, 0 for absent)
         public string CCTVCoverage { get; set; } // Converted from bool (assuming 1 for covered, 0 for not covered)
         public string AlcoholOrDrugInvolvement { get; set; } // Converted from bool (assuming 1 for involved, 0 for not involved)
+
+
+
+        public DateTime GetDate() => GetDate(Date);
+
+        public DateTime GetTime() => GetDate(Time);
+
+        public DateTime GetArrestDate() => GetDate(ArrestDate);
+
+        private static DateTime GetDate(string ticks)
+        {
+            if (string.IsNullOrEmpty(ticks)) return default;
+
+            var isNotParsed = int.TryParse(ticks, out int intTicks);
+
+            if (isNotParsed) return DateTime.MinValue;
+
+            return new DateTime(intTicks, DateTimeKind.Utc);
+        }
     }
 }
