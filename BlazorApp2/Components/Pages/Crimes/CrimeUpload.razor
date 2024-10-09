@@ -40,13 +40,15 @@
 
     private async Task HandleFileUpload()
     {
+
+
+        _isLoading = true;
+
         if (_fileModel.File == null)
         {
             Console.WriteLine("No file was uploaded.");
             return;
         }
-
-        _isLoading = true;
 
         using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
         using var reader = new StreamReader(stream);
@@ -96,8 +98,6 @@
                     CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
                     AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
                 };
-
-
 
             crimes.Add(crime);
 

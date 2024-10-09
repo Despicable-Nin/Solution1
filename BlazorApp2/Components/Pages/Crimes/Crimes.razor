@@ -18,8 +18,18 @@
 <h1>Crime Records</h1>
 
 <!-- Inline file upload form -->
-<CrimeUpload OnFileUploadSuccess="HandleFileUpload" />
+@* <CrimeUpload OnFileUploadSuccess="HandleFileUpload" /> *@
 
+<div class="container mb-4">
+    <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
+        <div class="input-group">
+            <InputFile OnChange="HandleFileSelected" class="form-control" />
+            <button type="submit" class="btn btn-success">Upload</button>
+        </div>
+    </EditForm>
+</div>
+
+<div class="container">|
 @if (_isLoading)
 {
     <div class="text-center">
@@ -45,11 +55,19 @@
         <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
     }
 }
+</div>
 
 @code {
     #region Dependencies
+    [Parameter]
+    public EventCallback OnFileUploadSuccess { get; set; }
+
     [Inject]
-    private ICrimeService _service { get; set; } = null!;
+    private ICrimeService crimeService { get; set; } = null!;
+
+    [Inject]
+    private IEnumeration enumService { get; set; } = null!;
+
     #endregion
 
     #region Member Fields
@@ -72,7 +90,7 @@
         _isLoading = true; // Set loading to true
         try
         {
-            var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
+            var result = await crimeService.GetCrimesAsync(CurrentPage, PageSize);
             TotalRecords = result.TotalCount;
             _crimes = result.Crimes;
         }
@@ -92,11 +110,162 @@
         await LoadData();
     }
 
+    #endregion
+
+    #region For Upload
+    private FileModel _fileModel = new FileModel();
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
+        }
+    }
+
     private async Task HandleFileUpload()
     {
-        _isLoading = true; // Set loading to true while processing the upload
-        await LoadData(); // Reload data to reflect new entries
+        _isLoading = true;
+
+        if (_fileModel.File == null)
+        {
+            Console.WriteLine("No file was uploaded.");
+            return;
+        }
+
+        using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
+        using var reader = new StreamReader(stream);
+        string? line;
+
+        var crimes = new List<CrimeDashboardDto>();
+
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            var columns = line.Split(',');
+
+            if (columns.Length != GenericHelper.CountProperties<Crime>() - 2)
+            {
+                throw new Exception("Invalid number of columns in the file.");
+            };
+
+            if (!int.TryParse(columns[0], out _))
+            {
+                continue;
+            }
+
+            var crime = new CrimeDashboardDto
+                {
+                    CaseID = int.Parse(columns[0]),
+                    CrimeType = columns[1],
+                    Date = columns[2],
+                    Time = TimeSpan.Parse(columns[3]),
+                    Address = columns[4],
+                    Severity = columns[5],
+                    Description = columns[6],
+                    WeaponUsed = columns[7],
+                    VictimCount = int.Parse(columns[8]),
+                    SuspectDescription = columns[9],
+                    ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                    ArrestDate = columns[11],
+                    ResponseTimeInMinutes = int.Parse(columns[12]),
+                    PoliceDistrict = columns[13],
+                    WeatherCondition = columns[14],
+                    CrimeMotive = columns[15],
+                    NearbyLandmarks = columns[16],
+                    RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                    PopulationDensityPerSqKm = int.Parse(columns[18]),
+                    UnemploymentRate = columns[19],
+                    MedianIncome = columns[20],
+                    ProximityToPoliceStationInKm = columns[21],
+                    StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                    CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                    AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
+                };
+
+            crimes.Add(crime);
+        }
+
+        try
+        {
+            // add crimeTypes before saving
+            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+            // add crimeMotive before saving
+            await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+            // add weatherConditions before saving
+            await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct());
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+
+            // add policeDistricts before saving
+            await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+        try
+        {
+            // add severityLevels before saving
+            await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct());
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+
+
+        try
+        {
+
+            // add crimes to the database
+            await crimeService.AddCrimesAsync(crimes.Distinct());
+
+            // Notify parent component after a successful upload
+            await OnFileUploadSuccess.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing file: {ex.Message}");
+        }
+        finally
+        {
+            LoadData();
+            _isLoading = false;
+            _fileModel = new FileModel();
+        }
     }
+
+
+    record FileModel
+    {
+        public IBrowserFile? File { get; set; }
+    }
+
     #endregion
 }
 
