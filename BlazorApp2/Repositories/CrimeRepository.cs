@@ -27,7 +27,10 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
     public async Task<(IEnumerable<Crime>, int totalCount)> GetCrimesAsync(int page, int pageSize)
     {
         var totalCount = _dbContext.Crimes.AsNoTracking().Count();
-        var crimes = await  _dbContext.Crimes.AsNoTracking().Skip(page -1).Take(pageSize).ToArrayAsync();
+        var crimes = await  _dbContext.Crimes.AsNoTracking()
+            .OrderBy(c => c.CaseID)
+            .Skip(page -1).Take(pageSize)
+            .ToArrayAsync();
 
         return (crimes, totalCount);
     }

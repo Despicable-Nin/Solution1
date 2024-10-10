@@ -4,7 +4,7 @@ using BlazorApp2.Services.Clustering;
 using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Enumerations;
 using BlazorApp2.Services.Geocoding;
-using BlazorApp2.BackgroundService;
+using BlazorApp2.BackgroundServices;
 
 namespace BlazorApp2.Helpers;
 
@@ -39,6 +39,7 @@ public static class IServicesCollectionExtensions
         // Register the background service
         services.AddHostedService<UploadBackgroundService>();
         services.AddHostedService<GISBackgroundService>();
+        services.AddHostedService<SanitizerBackgroundService>();
         return services;
     }
 }

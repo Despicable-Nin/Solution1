@@ -1,4 +1,5 @@
 ﻿@page "/crimes"
+@using BlazorApp2.BackgroundServices
 @using BlazorApp2.Services.Crimes
 @rendermode InteractiveServer
 @inject IWebHostEnvironment WebHotEnv
@@ -71,6 +72,8 @@
 
     [Inject] private IToastService toastService { get; set; } = null!;
 
+    [Inject] private SanitizerBackgroundService sanitizerBackgroundService { get; set; } = null!;
+
     #endregion
 
     #region Member Fields
@@ -117,7 +120,14 @@
 
     private async Task OnSanitizeButtonClick()
     {
-        toastService.ShowError($"An error occurred: ");
+        try
+        {
+           await sanitizerBackgroundService.StartAsync(CancellationToken.None);
+        }catch(Exception ex)
+        {
+            toastService.ShowError($"An error occurred: {ex.Message}. {ex.InnerException?.Message}");
+        }
+       
     }
 
     private async Task ChangePage(int newPage)

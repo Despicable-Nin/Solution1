@@ -1,9 +1,10 @@
-using BlazorApp2.BackgroundService;
+using BlazorApp2.BackgroundServices;
 using BlazorApp2.Components;
 using BlazorApp2.Components.Account;
 using BlazorApp2.Data;
 using BlazorApp2.Helpers;
 using BlazorApp2.Services.Geocoding;
+using Blazored.Toast;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -19,7 +20,7 @@ public class Program
     {
         // Configure Serilog
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug() // Set minimum log level
+            .MinimumLevel.Information() // Set minimum log level
             .Enrich.FromLogContext()
             .WriteTo.Console() // Log to console (optional)
             .WriteTo.Seq("http://seq:5341") // Set Seq URL
@@ -32,6 +33,8 @@ public class Program
 
         // Use Serilog for logging
         builder.Host.UseSerilog();
+        builder.Services.AddBlazoredToast();
+
 
         // Add services to the container.
         builder.Services.AddRazorComponents()

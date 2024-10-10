@@ -4,10 +4,10 @@ namespace BlazorApp2.Repositories.Interfaces
 {
     public interface IFlatClusterRepository
     {
-        Task AddFlastClusterSingleAsync(FlatCluster flatCluster);
-        Task AddFlatClustersAsync(IEnumerable<FlatCluster> flatClusters);
+        Task AddFlastClusterSingleAsync(SanitizedCrimeRecord flatCluster);
+        Task AddFlatClustersAsync(IEnumerable<SanitizedCrimeRecord> flatClusters);
         Task DeleteAllFlatClustersAsync();
-        Task<IEnumerable<FlatCluster>> GetFlatClustersAsync();
+        Task<IEnumerable<SanitizedCrimeRecord>> GetFlatClustersAsync();
 
     }
 }
