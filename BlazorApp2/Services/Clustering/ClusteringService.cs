@@ -10,12 +10,12 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
     private readonly MLContext _mlContext = new();
     private readonly IFlatClusterRepository _flatClusterRepository = flatClusterRepository;
 
-    public List<ClusterResult> PerformKMeansClustering(IEnumerable<FlatCluster> data, string[] features, int numberOfClusters = 3)
+    public List<ClusterResult> PerformKMeansClustering(IEnumerable<SanitizedCrimeRecord> data, string[] features, int numberOfClusters = 3)
     {
         Log.Logger.Information("PerformKMeansClustering", data, features, numberOfClusters);
 
         // Convert the input data into an IDataView (ML.NET data structure)
-        var schema = SchemaDefinition.Create(typeof(FlatCluster));
+        var schema = SchemaDefinition.Create(typeof(SanitizedCrimeRecord));
 
         schema["Id"].ColumnType = NumberDataViewType.Int32;
 
@@ -74,18 +74,18 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
     }
 
     //these methods are for the CRUD operations -- might move them to a separate service
-    public async Task AddFlatClusterRangeAsync(IEnumerable<FlatCluster> flatClusters)
+    public async Task AddFlatClusterRangeAsync(IEnumerable<SanitizedCrimeRecord> flatClusters)
     {
         await _flatClusterRepository.AddFlatClustersAsync(flatClusters);
     }
 
-    public async Task AddFlatClusterAsync(FlatCluster flatCluster)
+    public async Task AddFlatClusterAsync(SanitizedCrimeRecord flatCluster)
     {
         await _flatClusterRepository.AddFlastClusterSingleAsync(flatCluster);
     }
 
 
-    public async Task<IEnumerable<FlatCluster>> GetFlatClustersAsync()
+    public async Task<IEnumerable<SanitizedCrimeRecord>> GetFlatClustersAsync()
     {
         return await _flatClusterRepository.GetFlatClustersAsync();
     }

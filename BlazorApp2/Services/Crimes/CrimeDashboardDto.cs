@@ -37,4 +37,5 @@ public record CrimeDashboardDto
     public bool StreetLightPresent { get; init; }
     public bool CCTVCoverage { get; init; }
     public bool AlcoholOrDrugInvolvement { get; init; }
+    public bool IsWithoutLatLong { get; set; }
 }

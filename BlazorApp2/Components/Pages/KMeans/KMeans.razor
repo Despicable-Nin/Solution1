@@ -126,7 +126,7 @@ else if (ClusterResults != null)
     private string[] FlatClusterProperties { get; set; } = [];
     private Dictionary<string, bool> SelectedProperties { get; set; } = [];
     private List<ClusterResult>? ClusterResults = [];
-    private List<FlatCluster> FlatClusterDump = [];
+    private List<SanitizedCrimeRecord> FlatClusterDump = [];
 
 
     private bool HasFlatClusters => FlatClusterDump.Count > 0;
@@ -135,12 +135,12 @@ else if (ClusterResults != null)
     protected override void OnInitialized()
     {
         // Get the property names from the Crime class
-        FlatClusterProperties = GenericHelper.GetProperties<FlatCluster>().Except(["Id"]).ToArray();
+        FlatClusterProperties = GenericHelper.GetProperties<SanitizedCrimeRecord>().Except(["Id"]).ToArray();
 
-        var initialProperties = new[]{nameof(FlatCluster.CaseID),
-        nameof(FlatCluster.CrimeType),
-        nameof(FlatCluster.Latitude),
-        nameof(FlatCluster.Longitude)};
+        var initialProperties = new[]{nameof(SanitizedCrimeRecord.CaseID),
+        nameof(SanitizedCrimeRecord.CrimeType),
+        nameof(SanitizedCrimeRecord.Latitude),
+        nameof(SanitizedCrimeRecord.Longitude)};
 
 
         // Initialize the SelectedProperties dictionary
@@ -192,7 +192,7 @@ else if (ClusterResults != null)
             foreach (var crime in data.Crimes)
             {
                 var date = DateTime.Parse(crime.Date);
-                var flatCluster = new FlatCluster
+                var flatCluster = new SanitizedCrimeRecord
                     {
                         NearbyLandmarkLatitude = "0",
                         NearbyLandmarkLongitude = "0",
@@ -202,14 +202,14 @@ else if (ClusterResults != null)
                         Time = crime.Time.Ticks.ToString(),
                         Latitude = addressBook.GetValueOrDefault(crime.Address).Latitude.ToString(),
                         Longitude = addressBook.GetValueOrDefault(crime.Address).Longitude.ToString(), // Corrected Longitude assignment
-                        Severity = severities.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
+                        SeverityId = severities.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
                         VictimCount = crime.VictimCount.ToString(),
                         ArrestMade = crime.ArrestMade.ToString(),
                         ArrestDate = crime.ArrestDate,
                         ResponseTimeInMinutes = crime.ResponseTimeInMinutes.ToString(),
-                        PoliceDistrict = precincts.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
-                        WeatherCondition = weathers.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
-                        CrimeMotive = crimeMotives.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        PoliceDistrictId = precincts.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        WeatherConditionId = weathers.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        CrimeMotiveId = crimeMotives.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
                         RecurringIncident = crime.RecurringIncident.ToString(),
                         PopulationDensityPerSqKm = crime.PopulationDensityPerSqKm.ToString(),
                         UnemploymentRate = crime.UnemploymentRate,
@@ -228,7 +228,7 @@ else if (ClusterResults != null)
 
         var features = SelectedProperties
         .Where(x => x.Value)
-        .Where(x => x.Key != nameof(FlatCluster.CaseID))
+        .Where(x => x.Key != nameof(SanitizedCrimeRecord.CaseID))
         .Select(x => x.Key).ToArray();
 
         ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, NumberOfCluster);

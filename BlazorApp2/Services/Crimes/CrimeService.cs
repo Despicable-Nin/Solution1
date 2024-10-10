@@ -57,12 +57,18 @@ public class CrimeService : ICrimeService
         }
     }
 
+    public static bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)
+    {
+        return dtos.All(i => !i.IsWithoutLatLong);
+    }
+
     public async Task<PaginatedCrimesDto> GetCrimesAsync(int page = 1, int pageSize = 10)
     {
         var result = await _crimeRepository.GetCrimesAsync(page, pageSize);
         IEnumerable<CrimeDashboardDto> crimeDtos = result.Item1?.Select(c => new CrimeDashboardDto
         {
             Address = c.Address,
+            IsWithoutLatLong = c.Latitude.HasValue && c.Longitude.HasValue,  
             ArrestDate = c.ArrestDate?.ToString("u"),
             ArrestMade = c.ArrestMade ? 1 : 0,
             CaseID = c.CaseID,

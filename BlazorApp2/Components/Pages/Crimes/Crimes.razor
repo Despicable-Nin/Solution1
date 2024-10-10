@@ -9,17 +9,16 @@
 @using BlazorApp2.Components
 @using BlazorApp2.Components.Pages.Partials
 @using BlazorApp2.Services.Enumerations
+@using Blazored.Toast.Configuration
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
 
-@* Page Title *@
 <PageTitle>Crime Records</PageTitle>
 
 <h1>Crime Records</h1>
 
 <!-- Inline file upload form -->
 @* <CrimeUpload OnFileUploadSuccess="HandleFileUpload" /> *@
-
 <div class="container mb-4">
     <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
         <div class="input-group">
@@ -39,16 +38,21 @@
         <p><em>Loading data, please wait...</em></p>
     </div>
 }
+    <BlazoredToasts Position="ToastPosition.TopRight"
+                    Timeout="5"
+                    ShowProgressBar="true" />
 
 @if (!_isLoading && _crimes != null)
 {
-    <h3>Uploaded Crime Records</h3>
+   
     @if (!_crimes.Any())
     {
         <p>No crime records available.</p>
     }
     else
     {
+        <button type="submit" class="btn btn-success" disabled="@(_needsCleaning)" @onclick="OnSanitizeButtonClick">Sanitize</button>
+        <hr/>
         <CrimesTable Crimes="_crimes" />
 
         <!-- Pagination Controls -->
@@ -59,29 +63,28 @@
 
 @code {
     #region Dependencies
-    [Parameter]
-    public EventCallback OnFileUploadSuccess { get; set; }
+    [Parameter] public EventCallback OnFileUploadSuccess { get; set; }
 
-    [Inject]
-    private ICrimeService crimeService { get; set; } = null!;
+    [Inject] private ICrimeService crimeService { get; set; } = null!;
 
-    [Inject]
-    private IEnumeration enumService { get; set; } = null!;
+    [Inject] private IEnumeration enumService { get; set; } = null!;
+
+    [Inject] private IToastService toastService { get; set; } = null!;
 
     #endregion
 
     #region Member Fields
+
     bool _isLoading = true;
-    IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
+    public bool _needsCleaning = true;
 
     public int CurrentPage { get; private set; } = 1;
     public int PageSize { get; set; } = 10;
     public int TotalRecords { get; private set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
-    #endregion
 
-    #region Lifecycle Method(s)
-    protected override async Task OnInitializedAsync() => await LoadData();
+    IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
+
     #endregion
 
     #region Method(s)
@@ -93,12 +96,28 @@
             var result = await crimeService.GetCrimesAsync(CurrentPage, PageSize);
             TotalRecords = result.TotalCount;
             _crimes = result.Crimes;
+
+            // toastService.ShowInfo("Data successfully loaded.");
+        }catch(Exception ex)
+        {
+            toastService.ShowError("An error occurred", settings =>
+             {
+                 settings.Icon = "fas fa-exclamation-circle"; // Font Awesome icon
+                 settings.Timeout = 10000; // Duration in milliseconds
+             });
         }
         finally
         {
             _isLoading = false; // Set loading to false
+            _needsCleaning = !CrimeService.AreAllSanitized(_crimes);
+
             StateHasChanged(); // Trigger re-render
         }
+    }
+
+    private async Task OnSanitizeButtonClick()
+    {
+        toastService.ShowError($"An error occurred: ");
     }
 
     private async Task ChangePage(int newPage)
@@ -113,6 +132,7 @@
     #endregion
 
     #region For Upload
+
     private FileModel _fileModel = new FileModel();
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
@@ -127,130 +147,144 @@
     {
         _isLoading = true;
 
-        if (_fileModel.File == null)
+        try
         {
-            Console.WriteLine("No file was uploaded.");
-            return;
-        }
 
-        using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
-        using var reader = new StreamReader(stream);
-        string? line;
-
-        var crimes = new List<CrimeDashboardDto>();
-
-        while ((line = await reader.ReadLineAsync()) != null)
-        {
-            var columns = line.Split(',');
-
-            if (columns.Length != GenericHelper.CountProperties<Crime>() - 2)
+            if (_fileModel.File == null)
             {
-                throw new Exception("Invalid number of columns in the file.");
-            };
-
-            if (!int.TryParse(columns[0], out _))
-            {
-                continue;
+                toastService.ShowWarning("No file was uploaded.");
+                return;
             }
 
-            var crime = new CrimeDashboardDto
+            using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
+            using var reader = new StreamReader(stream);
+            string? line;
+
+            var crimes = new List<CrimeDashboardDto>();
+
+            //read the first line only --- the header
+            line = await reader.ReadLineAsync();
+
+            if(line != GenericHelper.CSVFields)
+            {
+                throw new Exception("File (*.csv) may be corrupt or is invalid format. ");
+            }
+
+
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                var columns = line.Split(',');
+
+                if (!int.TryParse(columns[0], out _))
                 {
-                    CaseID = int.Parse(columns[0]),
-                    CrimeType = columns[1],
-                    Date = columns[2],
-                    Time = TimeSpan.Parse(columns[3]),
-                    Address = columns[4],
-                    Severity = columns[5],
-                    Description = columns[6],
-                    WeaponUsed = columns[7],
-                    VictimCount = int.Parse(columns[8]),
-                    SuspectDescription = columns[9],
-                    ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
-                    ArrestDate = columns[11],
-                    ResponseTimeInMinutes = int.Parse(columns[12]),
-                    PoliceDistrict = columns[13],
-                    WeatherCondition = columns[14],
-                    CrimeMotive = columns[15],
-                    NearbyLandmarks = columns[16],
-                    RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
-                    PopulationDensityPerSqKm = int.Parse(columns[18]),
-                    UnemploymentRate = columns[19],
-                    MedianIncome = columns[20],
-                    ProximityToPoliceStationInKm = columns[21],
-                    StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
-                    CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
-                    AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
-                };
+                    continue;
+                }
 
-            crimes.Add(crime);
-        }
+                var crime = new CrimeDashboardDto
+                    {
+                        CaseID = int.Parse(columns[0]),
+                        CrimeType = columns[1],
+                        Date = columns[2],
+                        Time = TimeSpan.Parse(columns[3]),
+                        Address = columns[4],
+                        Severity = columns[5],
+                        Description = columns[6],
+                        WeaponUsed = columns[7],
+                        VictimCount = int.Parse(columns[8]),
+                        SuspectDescription = columns[9],
+                        ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                        ArrestDate = columns[11],
+                        ResponseTimeInMinutes = int.Parse(columns[12]),
+                        PoliceDistrict = columns[13],
+                        WeatherCondition = string.IsNullOrEmpty(columns[14]) ? "Unknown" : columns[14],
+                        CrimeMotive = columns[15],
+                        NearbyLandmarks = columns[16],
+                        RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                        PopulationDensityPerSqKm = int.Parse(columns[18]),
+                        UnemploymentRate = columns[19],
+                        MedianIncome = columns[20],
+                        ProximityToPoliceStationInKm = columns[21],
+                        StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                        CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                        AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
+                    };
 
-        try
+                crimes.Add(crime);
+            }
+
+            try
+            {
+                // add crimeTypes before saving
+                await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct()!);
+            }
+            catch (Exception ex)
+            {
+               toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+
+            try
+            {
+                // add crimeMotive before saving
+                await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct()!);
+            }
+            catch (Exception ex)
+            {
+                toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+
+            try
+            {
+                // add weatherConditions before saving
+                await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct()!);
+
+            }
+            catch (Exception ex)
+            {
+                toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+
+            try
+            {
+
+                // add policeDistricts before saving
+                await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct()!);
+            }
+            catch (Exception ex)
+            {
+                toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+
+            try
+            {
+                // add severityLevels before saving
+                await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct()!);
+
+            }
+            catch (Exception ex)
+            {
+                toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+
+
+            try
+            {
+
+                // add crimes to the database
+                await crimeService.AddCrimesAsync(crimes.Distinct());
+
+                // Notify parent component after a successful upload
+                await OnFileUploadSuccess.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                toastService.ShowError($"Error processing file: {ex.Message}");
+            }
+          
+
+        }catch(Exception ex)
         {
-            // add crimeTypes before saving
-            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
-        }
+            toastService.ShowError($"An error occurred: {ex.Message}");
 
-        try
-        {
-            // add crimeMotive before saving
-            await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
-        }
-
-        try
-        {
-            // add weatherConditions before saving
-            await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct());
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
-        }
-
-        try
-        {
-
-            // add policeDistricts before saving
-            await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
-        }
-
-        try
-        {
-            // add severityLevels before saving
-            await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct());
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
-        }
-
-
-        try
-        {
-
-            // add crimes to the database
-            await crimeService.AddCrimesAsync(crimes.Distinct());
-
-            // Notify parent component after a successful upload
-            await OnFileUploadSuccess.InvokeAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error processing file: {ex.Message}");
         }
         finally
         {
@@ -258,6 +292,7 @@
             _isLoading = false;
             _fileModel = new FileModel();
         }
+      
     }
 
 
@@ -267,6 +302,12 @@
     }
 
     #endregion
+
+
+    #region Lifecycle Method(s)
+    protected override async Task OnInitializedAsync() => await LoadData();
+    #endregion
+
 }
 
 <style>
