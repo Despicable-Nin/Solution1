@@ -327,7 +327,7 @@ namespace BlazorApp2.Migrations
                     b.HasIndex("CaseID")
                         .IsUnique();
 
-                    b.ToTable("FatClusters");
+                    b.ToTable("SanitizedCrimeRecords");
                 });
 
             modelBuilder.Entity("BlazorApp2.Data.PoliceDistrict", b =>

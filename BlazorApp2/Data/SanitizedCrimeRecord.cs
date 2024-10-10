@@ -2,9 +2,9 @@
 
 namespace BlazorApp2.Data
 {
-    public class FlatCluster
+    public class SanitizedCrimeRecord
     {
-        public FlatCluster() { }
+        public SanitizedCrimeRecord() { }
 
         [Key]
         public int Id { get; set; } 
@@ -17,14 +17,14 @@ namespace BlazorApp2.Data
         public string RawTime { get; set; }
         public string Latitude { get; set; }
         public string Longitude { get; set; }
-        public string Severity { get; set; } // Converted from int (assuming a numerical severity scale)
+        public string SeverityId { get; set; } // Converted from int (assuming a numerical severity scale)
         public string VictimCount { get; set; }
         public string ArrestMade { get; set; } // Converted from int (assuming binary: 0/1)
         public string ArrestDate { get; set; } // Might require specific conversion logic
         public string ResponseTimeInMinutes { get; set; } // Converted from int
-        public string PoliceDistrict { get; set; } // Converted from int (assuming numerical district ID)
-        public string WeatherCondition { get; set; } // Converted from int (assuming a numerical weather code)
-        public string CrimeMotive { get; set; } // Converted from int (assuming a numerical motive code)
+        public string PoliceDistrictId { get; set; } // Converted from int (assuming numerical district ID)
+        public string WeatherConditionId { get; set; } // Converted from int (assuming a numerical weather code)
+        public string CrimeMotiveId { get; set; } // Converted from int (assuming a numerical motive code)
 
         public string NearbyLandmarkLatitude { get; set; }
         public string NearbyLandmarkLongitude { get; set; }
