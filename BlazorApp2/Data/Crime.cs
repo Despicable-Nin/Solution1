@@ -9,6 +9,7 @@ namespace BlazorApp2.Data
             
         }
 
+        public Guid? BatchId { get; set; }  
         public Guid Id { get; set; }
         public float? Latitude { get; set; }
         public float? Longitude { get; set; }

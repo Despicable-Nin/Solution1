@@ -5,17 +5,20 @@ using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Enumerations;
 using BlazorApp2.Services.Geocoding;
 using BlazorApp2.BackgroundServices;
+using BlazorApp2.Services.Jobs;
 
 namespace BlazorApp2.Helpers;
 
-public static class IServicesCollectionExtensions
+public static class RegisterServices
 {
     public static IServiceCollection AddMyServices(this IServiceCollection services)
     {
         services.AddScoped<ICrimeService, CrimeService>();
         services.AddScoped<IEnumeration, EnumerationService>();
         services.AddScoped<IClusteringService, ClusteringService>();
+        services.AddScoped<IJobService, JobService>();
         services.AddSingleton<NominatimGeocodingService>();
+        services.AddScoped<JobProcessingService>();
 
         return services;
     }
@@ -39,7 +42,7 @@ public static class IServicesCollectionExtensions
         // Register the background service
         //services.AddHostedService<UploadBackgroundService>();
         //services.AddHostedService<GISBackgroundService>();
-        services.AddSingleton<SanitizerBackgroundService>();
+        //services.AddSingleton<SanitizerBackgroundService>();
         return services;
     }
 }

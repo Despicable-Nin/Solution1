@@ -1,65 +1,93 @@
 ﻿
+using BlazorApp2.Data;
+using BlazorApp2.Repositories.Interfaces;
 using BlazorApp2.Services.Crimes;
 using BlazorApp2.Services.Enumerations;
+using BlazorApp2.Services.Jobs;
 using Serilog;
-using System.ComponentModel;
-using System.Linq;
+
 namespace BlazorApp2.BackgroundServices;
 
 public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) : IHostedService, IDisposable
 {
 
     private Timer? _timer;
-    private int _count = 0;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
-        Log.Logger.Information("This is logged from {ServiceName} - {Timestamp}", nameof(UploadBackgroundService.StartAsync), DateTime.Now);
+        Log.Logger.Information("Starting {ServiceName} - {Timestamp}", nameof(UploadBackgroundService), DateTime.Now);
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        Log.Logger.Information("This is logged from {ServiceName} - {Timestamp}", nameof(UploadBackgroundService.StopAsync), DateTime.Now);
+        Log.Logger.Information("Stopping {ServiceName} - {Timestamp}", nameof(UploadBackgroundService), DateTime.Now);
         return Task.CompletedTask;
     }
 
     private async void DoWork(object? state)
     {
         // Fetch GIS data
-        Log.Logger.Information("This is logged from {ServiceName} - {Timestamp}", nameof(UploadBackgroundService.DoWork), DateTime.Now);
+        Log.Logger.Information("This is logged from {ServiceName} - {Timestamp}", nameof(UploadBackgroundService), DateTime.Now);
+        
         using var scope = serviceScopeFactory.CreateScope();
-        var crimeService = scope.ServiceProvider.GetRequiredService<ICrimeService>();
+        var crimeRepository = scope.ServiceProvider.GetRequiredService<ICrimeRepository>();
         var enumService = scope.ServiceProvider.GetRequiredService<IEnumeration>();
+        var jobService = scope.ServiceProvider.GetRequiredService<IJobService>();
 
-        var result = await crimeService.GetCrimesAsync(1, int.MaxValue);
+        var jobDto = await jobService.GetAJob();
 
+        if (jobDto == null) return;
 
-        if (result == null || !result.Crimes.Any())
-        {
-            Console.WriteLine("No crimes to process.");
-            return;
-
+        if (!Guid.TryParse(jobDto.Name, out var batchId)) {
+            throw new InvalidOperationException($"Job {jobDto} has an invalid name. SHould be of type Guid");
         }
 
-        int currentCount = result.TotalCount;
-
-        if (currentCount == _count)
+        Log.Logger.Information("Job fetched: {Job}", jobDto);
+        if(jobDto.Status == JobStatus.Created)
         {
-            Log.Logger.Information("No change in Crime Count.. therefore.. just go on with your life..");
-            return;
+            try
+            {
+                jobDto = jobDto with { Status = JobStatus.Running };
+                await jobService.UpdateJob(jobDto);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Error(ex, "Failed to update job : {Job}. Reason: {Reason}", jobDto, ex.Message + ". " + ex.InnerException?.Message);
+            }
+            
         }
 
-        var crimes = result.Crimes;
+        try
+        {
+            var result = await crimeRepository.GetCrimesByBatchIdAsync(batchId);
+            if (result == null || !result.Any())
+            {
+                try
+                {
+                    jobDto = jobDto with { Status = JobStatus.Running };
+                    await jobService.UpdateJob(jobDto);
 
-        await PersistEnumerationsAsync(enumService, crimes);
+                    await PersistEnumerationsAsync(enumService, result!);
+                }
+                catch (Exception ex)
+                {
+                    Log.Logger.Error(ex, "Failed to update job : {Job}. Reason: {Reason}", jobDto, ex.Message + ". " + ex.InnerException?.Message);
+                    Log.Logger.Error(ex, "Data processing failed {DateTimeNow}...", DateTime.Now);
+                }  
+            }
 
+        }catch(Exception ex)
+        {
+            Log.Logger.Error(ex, "Failed to update job : {Job}. Reason: {Reason}", jobDto, ex.Message + ". " + ex.InnerException?.Message);
+        }
     }
 
-    private static async Task PersistEnumerationsAsync(IEnumeration enumService, IEnumerable<CrimeDashboardDto> crimes)
+    private static async Task PersistEnumerationsAsync(IEnumeration enumService, IEnumerable<Crime>? crimes)
     {
+        crimes ??= [];
         try
         {
             // add crimeTypes before saving
@@ -67,7 +95,7 @@ public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing file: {ex.Message}");
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason} {AdditionalInfo}", nameof(CrimeType), ex.Message, ex.InnerException?.Message);
         }
 
         try
@@ -77,7 +105,7 @@ public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing file: {ex.Message}");
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason} {AdditionalInfo}", nameof(CrimeMotive), ex.Message, ex.InnerException?.Message);
         }
 
         try
@@ -88,7 +116,7 @@ public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing file: {ex.Message}");
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason} {AdditionalInfo}", nameof(Weather), ex.Message, ex.InnerException?.Message);
         }
 
         try
@@ -99,7 +127,7 @@ public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing file: {ex.Message}");
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason} {AdditionalInfo}", nameof(PoliceDistrict), ex.Message, ex.InnerException?.Message);
         }
 
         try
@@ -111,7 +139,7 @@ public class UploadBackgroundService(IServiceScopeFactory serviceScopeFactory) :
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error processing file: {ex.Message}");
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason} {AdditionalInfo}", nameof(Severity), ex.Message, ex.InnerException?.Message);
         }
     }
 

@@ -6,6 +6,7 @@ namespace BlazorApp2.Services.Crimes;
 [DataContract]
 public record CrimeDashboardDto
 {
+    public Guid? BatchID { get; init; }
     public int CaseID { get; init; }
     [Display(Name = "Type")]
     public string? CrimeType { get; init; }

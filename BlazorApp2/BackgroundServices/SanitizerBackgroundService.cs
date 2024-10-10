@@ -3,7 +3,7 @@ using Serilog;
 
 namespace BlazorApp2.BackgroundServices;
 
-public class SanitizerBackgroundService(IHubContext<NotificationHub> hubContext)
+public class SanitizerBackgroundService(IHubContext<JobHub> hubContext)
 {
     public async Task RunSanitizationTask(CancellationToken stoppingToken)
     {

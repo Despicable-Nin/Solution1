@@ -7,15 +7,12 @@ namespace BlazorApp2.Repositories
     public class JobRepository(ApplicationDbContext dbContext) : IJobRepository
     {
 
-        public async Task<Job> CreateJob(JobType jobType, string name)
+        public async Task<Job> CreateJob(Job job)
         {
-            
-            var job = new Job { Id = Guid.NewGuid(), Name = name, JobType = jobType };         
-            dbContext.Jobs.Add(job);
-            return job;
+            return (await dbContext.Jobs.AddAsync(job)).Entity;
         }       
 
-        public async Task<Job> GetFirstJob(JobType jobType)
+        public async Task<Job> GetSingleUnprocessedJob(JobType jobType)
         {
             var job = await dbContext.Jobs
                 .FirstOrDefaultAsync(i => i.JobType == jobType && i.Status == JobStatus.Created);
@@ -43,6 +40,11 @@ namespace BlazorApp2.Repositories
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         {
             return await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<Job?> GetJobByIdAsync(Guid id)
+        {
+            return await dbContext.Jobs.FindAsync(id);
         }
     }
 }

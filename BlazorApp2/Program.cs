@@ -5,6 +5,7 @@ using BlazorApp2.Data;
 using BlazorApp2.Helpers;
 using BlazorApp2.Services.Geocoding;
 using Blazored.Toast;
+using Hangfire;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -50,6 +51,9 @@ public class Program
             ?? throw new InvalidOperationException($"Connection string 'DefaultConnection' not found.");
 
         Console.WriteLine(connectionString);
+
+        builder.Services.AddHangfire(config => config.UseSqlServerStorage(connectionString));
+        builder.Services.AddHangfireServer();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
@@ -103,6 +107,9 @@ public class Program
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+        // Add Hangfire Dashboard (optional)
+        app.UseHangfireDashboard();
 
         app.Run();
     }

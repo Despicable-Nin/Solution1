@@ -1,6 +1,8 @@
-﻿using BlazorApp2.Data;
+﻿using BlazorApp2.Components.Pages.Crimes;
+using BlazorApp2.Data;
 using BlazorApp2.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.ML;
 
 namespace BlazorApp2.Repositories;
 
@@ -35,12 +37,41 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
         return (crimes, totalCount);
     }
 
-    public Task<IEnumerable<Crime>> GetCrimesAsync() => throw new NotImplementedException();
+    public async Task<IEnumerable<Crime>> GetCrimesByBatchIdAsync(Guid batchId)
+    {
+        var crimes = await dbContext.Crimes.AsNoTracking().Where(i => i.BatchId == batchId).ToArrayAsync();
+        return crimes;
+    }
 
-    public Task<Crime> UpdateCrimeAsync(Crime crime) => throw new NotImplementedException();
+    public async Task<Crime> UpdateCrimeAsync(Crime crime) {
+        var entity = dbContext.Crimes.Update(crime).Entity;
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        return entity;
+    }
 
     public Task<List<Crime>> GetExistingCaseIdsAsync(List<int> caseIds)
     {
         throw new NotImplementedException();
+    }
+
+    private static readonly object _lock = new object();
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            using var transaction = dbContext.Database.BeginTransaction();
+            try
+            {
+                var result = dbContext.SaveChanges();
+                transaction.Commit();
+                return Task.FromResult(result);
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
     }
 }

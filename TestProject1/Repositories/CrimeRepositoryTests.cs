@@ -1,4 +1,5 @@
-﻿using BlazorApp2.Data;
+﻿using BlazorApp2.Components.Pages.Crimes;
+using BlazorApp2.Data;
 using BlazorApp2.Repositories;
 using BlazorApp2.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;

@@ -24,6 +24,7 @@ public class CrimeService : ICrimeService
             .Where(c => !existingCaseIds.Contains(c.CaseID))
                     .Select(c => new Crime
         {
+                        BatchId = c.BatchID,
             CaseID = c.CaseID,
             CrimeType = c.CrimeType,
             Date = DateTime.Parse(c.Date),
