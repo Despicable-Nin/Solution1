@@ -12,7 +12,7 @@ public class CrimeService : ICrimeService
         _crimeRepository = crimeRepository;
     }
 
-    public async Task AddCrimesAsync(IEnumerable<CrimeDashboardDto> crimeDtos)
+    public async Task<int> AddCrimesAsync(IEnumerable<CrimeDashboardDto> crimeDtos)
     {
         if (crimeDtos == null) throw new ArgumentException(nameof(crimeDtos));
 
@@ -51,10 +51,13 @@ public class CrimeService : ICrimeService
             AlcoholOrDrugInvolvement = c.AlcoholOrDrugInvolvement
         });
 
+        int affectedRows = 0;
         if (crimes.Any())
         {
-            await _crimeRepository.AddCrimesAsync(crimes);
+           affectedRows = await _crimeRepository.AddCrimesAsync(crimes);
         }
+
+        return affectedRows;
     }
 
     public static bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)

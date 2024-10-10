@@ -37,9 +37,9 @@ public static class IServicesCollectionExtensions
     public static IServiceCollection AddMyBackgroundServices(this IServiceCollection services)
     {
         // Register the background service
-        services.AddHostedService<UploadBackgroundService>();
-        services.AddHostedService<GISBackgroundService>();
-        services.AddHostedService<SanitizerBackgroundService>();
+        //services.AddHostedService<UploadBackgroundService>();
+        //services.AddHostedService<GISBackgroundService>();
+        services.AddSingleton<SanitizerBackgroundService>();
         return services;
     }
 }

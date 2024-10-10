@@ -8,7 +8,7 @@ public interface ICrimeRepository
     Task<IEnumerable<Crime>> GetCrimesAsync();
     Task<Crime?> GetCrimeByCaseId(int id);
 
-    Task AddCrimesAsync(IEnumerable<Crime> crime);
+    Task<int> AddCrimesAsync(IEnumerable<Crime> crime);
     Task<Crime> UpdateCrimeAsync(Crime crime);
     Task DeleteCrimeAsync(Guid id);
     Task<IEnumerable<int>> GetExistingCaseIdsAsync();

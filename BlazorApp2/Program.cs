@@ -65,7 +65,7 @@ public class Program
         builder.Services.AddMyRepositories();
         builder.Services.AddMyServices();
         builder.Services.AddHttpClient<NominatimGeocodingService>();
-
+        builder.Services.AddMyBackgroundServices();
      
 
 

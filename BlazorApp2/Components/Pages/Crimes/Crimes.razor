@@ -120,14 +120,10 @@
 
     private async Task OnSanitizeButtonClick()
     {
-        try
-        {
-           await sanitizerBackgroundService.StartAsync(CancellationToken.None);
-        }catch(Exception ex)
-        {
-            toastService.ShowError($"An error occurred: {ex.Message}. {ex.InnerException?.Message}");
-        }
-       
+
+        toastService.ShowError("An error occurred: {ex.Message}. {ex.InnerException?.Message}");
+
+
     }
 
     private async Task ChangePage(int newPage)
@@ -156,6 +152,7 @@
     private async Task HandleFileUpload()
     {
         _isLoading = true;
+        var affected = 0;        
 
         try
         {
@@ -229,7 +226,7 @@
             }
             catch (Exception ex)
             {
-               toastService.ShowError($"Error processing file: {ex.Message}");
+                toastService.ShowError($"Error processing file: {ex.Message}");
             }
 
             try
@@ -280,16 +277,22 @@
             {
 
                 // add crimes to the database
-                await crimeService.AddCrimesAsync(crimes.Distinct());
+                affected = await crimeService.AddCrimesAsync(crimes.Distinct());
+                if (affected == 0)
+                {
+                    toastService.ShowInfo("Upload complete but no changes. This may be caused by duplicate entries.");
+                 
+                }
 
                 // Notify parent component after a successful upload
                 await OnFileUploadSuccess.InvokeAsync();
+               
             }
             catch (Exception ex)
             {
                 toastService.ShowError($"Error processing file: {ex.Message}");
             }
-          
+
 
         }catch(Exception ex)
         {
@@ -298,7 +301,8 @@
         }
         finally
         {
-            LoadData();
+            affected = 0;
+            await LoadData();
             _isLoading = false;
             _fileModel = new FileModel();
         }

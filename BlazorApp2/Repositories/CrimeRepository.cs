@@ -8,10 +8,10 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
 {
     private readonly ApplicationDbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
-    public async Task AddCrimesAsync(IEnumerable<Crime> crime)
+    public async Task<int> AddCrimesAsync(IEnumerable<Crime> crime)
     {
         await _dbContext.Crimes.AddRangeAsync(crime);
-        await _dbContext.SaveChangesAsync();
+        return await _dbContext.SaveChangesAsync();
     }
 
     public Task DeleteCrimeAsync(Guid id) => throw new NotImplementedException();
