@@ -4,6 +4,7 @@ using BlazorApp2.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorApp2.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241010071924_rename-fat-cluster")]
+    partial class renamefatcluster
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,9 +108,6 @@ namespace BlazorApp2.Migrations
                     b.Property<bool>("ArrestMade")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("BatchId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("CCTVCoverage")
                         .HasColumnType("bit");
 
@@ -132,7 +132,7 @@ namespace BlazorApp2.Migrations
                     b.Property<DateTime>("DateUploaded")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2024, 10, 10, 19, 10, 45, 773, DateTimeKind.Local).AddTicks(7783));
+                        .HasDefaultValue(new DateTime(2024, 10, 10, 15, 19, 23, 821, DateTimeKind.Local).AddTicks(9528));
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");

@@ -9,6 +9,9 @@
 @using BlazorApp2.Services.Enumerations
 @using BlazorApp2.Services.Geocoding
 @using System.Collections.Concurrent
+@using OpenLayers.Blazor
+
+
 @inject IClusteringService ClusteringService
 @inject ICrimeService CrimeService
 @inject IEnumeration EnumService
@@ -60,7 +63,7 @@
         <p><em>Loading data, please wait...</em></p>
     </div>
 }
-else if (ClusterResults != null)
+else if (Clusters != null)
 {
     <table class="table">
         <thead>
@@ -71,7 +74,7 @@ else if (ClusterResults != null)
             </tr>
         </thead>
         <tbody>
-            @foreach (var result in ClusterResults)
+            @foreach (var result in Clusters)
             {
                 <tr>
                     <td>@result.Count</td>
@@ -83,19 +86,20 @@ else if (ClusterResults != null)
     </table>
 }
 
-
+@if (Clusters != null && Clusters.Any())
+{
     <div class="container">
-        <OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="new Coordinate(initialLongitude, initialLatitude)">
+        <OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="@(new Coordinate(initialLongitude, initialLatitude))">
 
             <Features>
-                @foreach (var cluster in ClusterResults)
+                @foreach (var cluster in Clusters)
                 {
-                    <Marker Type="MarkerType.MarkerPin" Coordinate="new Coordinate(@cluster.Longitude, @cluster.Latitude)"></Marker>
+                    <Marker Type="MarkerType.MarkerPin" Coordinate="@(new Coordinate(double.Parse(cluster.Longitude), double.Parse(cluster.Latitude)))"></Marker>
                 }
             </Features>
         </OpenStreetMap>
     </div>
-
+}
 
 <style>
     .checkbox-container {
@@ -125,8 +129,10 @@ else if (ClusterResults != null)
 
     private string[] FlatClusterProperties { get; set; } = [];
     private Dictionary<string, bool> SelectedProperties { get; set; } = [];
-    private List<ClusterResult>? ClusterResults = [];
-    private List<FlatCluster> FlatClusterDump = [];
+    private List<SanitizedCrimeRecord> FlatClusterDump = [];
+
+    private IEnumerable<ClusterResult>? Clusters = [];
+    private double initialLongitude = 121.04763778648794D, initialLatitude = 14.372935416829094D;
 
 
     private bool HasFlatClusters => FlatClusterDump.Count > 0;
@@ -135,12 +141,12 @@ else if (ClusterResults != null)
     protected override void OnInitialized()
     {
         // Get the property names from the Crime class
-        FlatClusterProperties = GenericHelper.GetProperties<FlatCluster>().Except(["Id"]).ToArray();
+        FlatClusterProperties = GenericHelper.GetProperties<SanitizedCrimeRecord>().Except(["Id"]).ToArray();
 
-        var initialProperties = new[]{nameof(FlatCluster.CaseID),
-        nameof(FlatCluster.CrimeType),
-        nameof(FlatCluster.Latitude),
-        nameof(FlatCluster.Longitude)};
+        var initialProperties = new[]{nameof(SanitizedCrimeRecord.CaseID),
+        nameof(SanitizedCrimeRecord.CrimeType),
+        nameof(SanitizedCrimeRecord.Latitude),
+        nameof(SanitizedCrimeRecord.Longitude)};
 
 
         // Initialize the SelectedProperties dictionary
@@ -160,56 +166,56 @@ else if (ClusterResults != null)
 
         IsLoading = true;
 
-        FlatClusterDump = (await ClusteringService.GetFlatClustersAsync()).ToList();
+        var dump = await CrimeService.GetCrimesAsync(1, int.MaxValue);
 
-        if (FlatClusterDump.Count == 0)
+        if (dump.Crimes.Count() > 0)
         {
             // Fetch data to transform
-            var data = await CrimeService.GetCrimesAsync(1, int.MaxValue);
-            var crimeMotives = await EnumService.GetCrimeMotives();
-            var crimeTypes = await EnumService.GetCrimeTypes();
-            var severities = await EnumService.GetSeverities();
-            var precincts = await EnumService.GetPoliceDistricts();
-            var weathers = await EnumService.GetWeatherConditions();
+            //var data = await CrimeService.GetCrimesAsync(1, int.MaxValue);
+            // var crimeMotives = await EnumService.GetCrimeMotives();
+            // var crimeTypes = await EnumService.GetCrimeTypes();
+            // var severities = await EnumService.GetSeverities();
+            // var precincts = await EnumService.GetPoliceDistricts();
+            // var weathers = await EnumService.GetWeatherConditions();
 
-            var addressBook = new ConcurrentDictionary<string, (double Latitude, double Longitude)>();
-            foreach (var crime in data.Crimes)
-            {
-                (double Latitude, double Longitude) result = (0D, 0D);
-                if (addressBook.ContainsKey(crime.Address))
-                {
-                    result = addressBook.GetValueOrDefault(crime.Address);
-                }
-                else
-                {
-                    result = await GeocodingService.GetLatLongAsync(crime.Address);
-                    addressBook.TryAdd(crime.Address, (result.Latitude, result.Longitude));
-                    await Task.Delay(1000);
-                }
-            }
+            // var addressBook = new ConcurrentDictionary<string, (double Latitude, double Longitude)>();
+            // foreach (var crime in data.Crimes)
+            // {
+            //     (double Latitude, double Longitude) result = (0D, 0D);
+            //     if (addressBook.ContainsKey(crime.Address))
+            //     {
+            //         result = addressBook.GetValueOrDefault(crime.Address);
+            //     }
+            //     else
+            //     {
+            //         result = await GeocodingService.GetLatLongAsync(crime.Address);
+            //         addressBook.TryAdd(crime.Address, (result.Latitude, result.Longitude));
+            //         await Task.Delay(1000);
+            //     }
+            // }
 
             // Save first -- generate a temporary data table
-            foreach (var crime in data.Crimes)
+            foreach (var crime in dump.Crimes)
             {
                 var date = DateTime.Parse(crime.Date);
-                var flatCluster = new FlatCluster
+                var flatCluster = new SanitizedCrimeRecord
                     {
                         NearbyLandmarkLatitude = "0",
                         NearbyLandmarkLongitude = "0",
                         CaseID = crime.CaseID.ToString(),
-                        CrimeType = crimeTypes.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
+                        CrimeType = crime.CrimeTypeId ?? "0",
                         Date = date.Ticks.ToString(),
                         Time = crime.Time.Ticks.ToString(),
-                        Latitude = addressBook.GetValueOrDefault(crime.Address).Latitude.ToString(),
-                        Longitude = addressBook.GetValueOrDefault(crime.Address).Longitude.ToString(), // Corrected Longitude assignment
-                        Severity = severities.FirstOrDefault(x => x.Value == crime.Severity).Key.ToString(),
+                        Latitude = crime.Latitude ?? "0",
+                        Longitude = crime.Longitude ?? "0", // Corrected Longitude assignment
+                        SeverityId = crime.SeverityId ?? "0",
                         VictimCount = crime.VictimCount.ToString(),
                         ArrestMade = crime.ArrestMade.ToString(),
                         ArrestDate = crime.ArrestDate,
                         ResponseTimeInMinutes = crime.ResponseTimeInMinutes.ToString(),
-                        PoliceDistrict = precincts.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
-                        WeatherCondition = weathers.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
-                        CrimeMotive = crimeMotives.FirstOrDefault(x => x.Value == crime.PoliceDistrict).Key.ToString(),
+                        PoliceDistrictId = crime.PoliceDistrictId ?? "0",
+                        WeatherConditionId = crime.WeatherConditionId ?? "0",
+                        CrimeMotiveId = crime.CrimeMotiveId ?? "0",
                         RecurringIncident = crime.RecurringIncident.ToString(),
                         PopulationDensityPerSqKm = crime.PopulationDensityPerSqKm.ToString(),
                         UnemploymentRate = crime.UnemploymentRate,
@@ -223,15 +229,15 @@ else if (ClusterResults != null)
                 FlatClusterDump.Add(flatCluster);
             }
 
-            await ClusteringService.AddFlatClusterRangeAsync(FlatClusterDump);
+            //await ClusteringService.AddFlatClusterRangeAsync(FlatClusterDump);
         }
 
         var features = SelectedProperties
         .Where(x => x.Value)
-        .Where(x => x.Key != nameof(FlatCluster.CaseID))
+        .Where(x => x.Key != nameof(SanitizedCrimeRecord.CaseID))
         .Select(x => x.Key).ToArray();
 
-        ClusterResults = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, NumberOfCluster);
+        Clusters = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, NumberOfCluster);
         IsLoading = false;
     }
 
@@ -243,7 +249,7 @@ else if (ClusterResults != null)
         await ClusteringService.DeleteAllFlatClustersAsync();
 
         // Optionally clear cluster results if needed
-        ClusterResults = null;
+       Clusters = [];
 
         IsLoading = false;
     }

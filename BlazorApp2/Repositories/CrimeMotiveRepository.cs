@@ -17,27 +17,27 @@ public class CrimeMotiveRepository(ApplicationDbContext context) : ICrimeMotiveR
 
 public class FlatClusterRepository(ApplicationDbContext context) : IFlatClusterRepository
 {
-    public async Task AddFlatClustersAsync(IEnumerable<FlatCluster> flatClusters)
+    public async Task AddFlatClustersAsync(IEnumerable<SanitizedCrimeRecord> flatClusters)
     {
-        context.FatClusters.AddRange(flatClusters);
+        context.SanitizedCrimeRecords.AddRange(flatClusters);
         await context.SaveChangesAsync();
     }
 
-    public async Task AddFlastClusterSingleAsync(FlatCluster flatCluster)
+    public async Task AddFlastClusterSingleAsync(SanitizedCrimeRecord flatCluster)
     {
-        context.FatClusters.Add(flatCluster);
+        context.SanitizedCrimeRecords.Add(flatCluster);
         await context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<FlatCluster>> GetFlatClustersAsync()
+    public async Task<IEnumerable<SanitizedCrimeRecord>> GetFlatClustersAsync()
     {
-        return await context.FatClusters.AsNoTracking().ToArrayAsync();
+        return await context.SanitizedCrimeRecords.AsNoTracking().ToArrayAsync();
     }
 
     public async Task DeleteAllFlatClustersAsync()
     {
-        var allClusters = await context.FatClusters.ToListAsync();
-        context.FatClusters.RemoveRange(allClusters);
+        var allClusters = await context.SanitizedCrimeRecords.ToListAsync();
+        context.SanitizedCrimeRecords.RemoveRange(allClusters);
         await context.SaveChangesAsync();
     }
 

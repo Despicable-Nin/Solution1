@@ -32,6 +32,7 @@ namespace BlazorApp2.Data
 
         public void MarkAsFailed()
         {
+            Retries += 1;
             Status = Retries > 3 ? JobStatus.HardFail : JobStatus.Failed;
             LastUpdatedDateTime = DateTime.Now;
         }

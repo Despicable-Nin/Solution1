@@ -1,25 +1,48 @@
 ﻿@page "/crimes"
-@using BlazorApp2.Services.Crimes
-@rendermode InteractiveServer
-@inject IWebHostEnvironment WebHotEnv
 
+@rendermode InteractiveServer
+
+@using BlazorApp2.BackgroundServices
+@using BlazorApp2.Services.Crimes
 @using BlazorApp2.Data
 @using BlazorApp2.Helpers
 @using BlazorApp2.Services
 @using BlazorApp2.Components
 @using BlazorApp2.Components.Pages.Partials
 @using BlazorApp2.Services.Enumerations
+@using BlazorApp2.Services.Jobs
+@using Blazored.Toast.Configuration
+@using Hangfire
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.EntityFrameworkCore
+@using Serilog
 
-@* Page Title *@
+
+@inject IWebHostEnvironment WebHotEnv
+@inject IToastService toastService
+@inject ICrimeService crimeService
+@inject IEnumeration enumService
+@inject IJobService jobService
+@inject JobProcessingService jobProcessor
+@inject NavigationManager navigation
+
+
 <PageTitle>Crime Records</PageTitle>
 
 <h1>Crime Records</h1>
 
 <!-- Inline file upload form -->
-<CrimeUpload OnFileUploadSuccess="HandleFileUpload" />
+<div class="container mb-4">
+    <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
+        <div class="input-group">
+            <InputFile OnChange="HandleFileSelected" class="form-control" />
+            <button type="submit" class="btn btn-success">Upload</button>
+        </div>
+    </EditForm>
+</div>
 
+<div class="container">
 @if (_isLoading)
 {
     <div class="text-center">
@@ -29,58 +52,94 @@
         <p><em>Loading data, please wait...</em></p>
     </div>
 }
+    <BlazoredToasts Position="ToastPosition.TopRight"
+                    Timeout="5"
+                    ShowProgressBar="true" />
 
 @if (!_isLoading && _crimes != null)
 {
-    <h3>Uploaded Crime Records</h3>
+   
     @if (!_crimes.Any())
     {
-        <p>No crime records available.</p>
-    }
-    else
-    {
+            <p>No crime records available.</p>
+        }
+        else
+        {
+            if (_needsCleaning)
+            {
+                <button type="submit" class="btn btn-outline-secondary" disabled="disabled">Sanitize (disabled)</button>
+            }else {
+                <button type="submit" class="btn btn-outline-success" @onclick="OnSanitizeButtonClick">Sanitize</button>
+            }
+            <hr/>
         <CrimesTable Crimes="_crimes" />
 
         <!-- Pagination Controls -->
         <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
     }
 }
+</div>
 
 @code {
-    #region Dependencies
-    [Inject]
-    private ICrimeService _service { get; set; } = null!;
-    #endregion
+    [Parameter] public EventCallback OnFileUploadSuccess { get; set; }
 
-    #region Member Fields
     bool _isLoading = true;
+    public bool _needsCleaning = true;
     IEnumerable<CrimeDashboardDto> _crimes = Array.Empty<CrimeDashboardDto>();
 
     public int CurrentPage { get; private set; } = 1;
     public int PageSize { get; set; } = 10;
     public int TotalRecords { get; private set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
-    #endregion
 
-    #region Lifecycle Method(s)
-    protected override async Task OnInitializedAsync() => await LoadData();
-    #endregion
+    private HubConnection? hubConnection;
 
     #region Method(s)
     private async Task LoadData()
     {
+
+
         _isLoading = true; // Set loading to true
         try
         {
-            var result = await _service.GetCrimesAsync(CurrentPage, PageSize);
+            var result = await crimeService.GetCrimesAsync(CurrentPage, PageSize);
             TotalRecords = result.TotalCount;
             _crimes = result.Crimes;
+
+            //toastService.ShowInfo("Data successfully loaded.");
+        }catch(Exception ex)
+        {
+            toastService.ShowError("An error occurred", settings =>
+             {
+                 settings.Icon = "fas fa-exclamation-circle"; // Font Awesome icon
+                 settings.Timeout = 10000; // Duration in milliseconds
+             });
         }
         finally
         {
             _isLoading = false; // Set loading to false
+            _needsCleaning = !CrimeService.AreAllSanitized(_crimes);
+
             StateHasChanged(); // Trigger re-render
         }
+
+
+    }
+
+    private async Task OnSanitizeButtonClick()
+    {
+        //await hubConnection!.SendAsync("SendJobUpdate", "This is a test message!");
+        try
+        {
+            BackgroundJob.Enqueue(() => jobProcessor.ProcessJobAsync());
+
+        }catch(Exception ex)
+        {
+            toastService.ShowError($"An error occurred: {ex.Message}. {ex.InnerException?.Message}");
+
+        }
+
+        toastService.ShowSuccess("Sanitizing...");
     }
 
     private async Task ChangePage(int newPage)
@@ -92,12 +151,213 @@
         await LoadData();
     }
 
+    #endregion
+
+    #region For Upload
+
+    private FileModel _fileModel = new FileModel();
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.FileCount > 0)
+        {
+            _fileModel.File = e.GetMultipleFiles(1).FirstOrDefault();
+        }
+    }
+
     private async Task HandleFileUpload()
     {
-        _isLoading = true; // Set loading to true while processing the upload
-        await LoadData(); // Reload data to reflect new entries
+        var affected = 0; 
+        var batchId = Guid.NewGuid();
+        var errorMessage = string.Empty;
+
+        try
+        {
+            _isLoading = true;
+
+            if (_fileModel.File == null)
+            {
+                toastService.ShowWarning("No file was uploaded.");
+                return;
+            }
+
+            using var stream = _fileModel.File.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024); // Limit to 2 MB
+            using var reader = new StreamReader(stream);
+            string? line;
+
+            var crimes = new List<CrimeDashboardDto>();
+
+            //read the first line only --- the header
+            line = await reader.ReadLineAsync();
+
+            if(line != GenericHelper.CSVFields)
+            {
+                throw new Exception("File (*.csv) may be corrupt or is invalid format. ");
+            }
+
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                var columns = line.Split(',');
+
+                if (!int.TryParse(columns[0], out _))
+                {
+                    continue;
+                }
+
+                var crime = new CrimeDashboardDto
+                    {
+                        BatchID = batchId,
+                        CaseID = int.Parse(columns[0]),
+                        CrimeType = columns[1],
+                        Date = columns[2],
+                        Time = TimeSpan.Parse(columns[3]),
+                        Address = columns[4],
+                        Severity = columns[5],
+                        Description = columns[6],
+                        WeaponUsed = columns[7],
+                        VictimCount = int.Parse(columns[8]),
+                        SuspectDescription = columns[9],
+                        ArrestMade = columns[10].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                        ArrestDate = columns[11],
+                        ResponseTimeInMinutes = int.Parse(columns[12]),
+                        PoliceDistrict = columns[13],
+                        WeatherCondition = string.IsNullOrEmpty(columns[14]) ? "Unknown" : columns[14],
+                        CrimeMotive = columns[15],
+                        NearbyLandmarks = columns[16],
+                        RecurringIncident = columns[17].Equals("Yes", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                        PopulationDensityPerSqKm = int.Parse(columns[18]),
+                        UnemploymentRate = columns[19],
+                        MedianIncome = columns[20],
+                        ProximityToPoliceStationInKm = columns[21],
+                        StreetLightPresent = columns[22].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                        CCTVCoverage = columns[23].Equals("Yes", StringComparison.OrdinalIgnoreCase),
+                        AlcoholOrDrugInvolvement = columns[24].Equals("Yes", StringComparison.OrdinalIgnoreCase)
+                    };
+
+                crimes.Add(crime);
+            }
+
+            try
+            {
+                await PersistEnumerationsAsync(crimes);
+
+                // add crimes to the database
+                affected = await crimeService.AddCrimesAsync(crimes.Distinct());
+                if (affected == 0)
+                {
+                    throw new Exception("Upload complete but no changes. This may be caused by duplicate entries.");
+                }else
+                {
+                    await jobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
+
+                    toastService.ShowSuccess("Finished uploading data..", settings =>
+                    {
+                        settings.Timeout = 20;
+                    });
+                    toastService.ShowInfo("Job created for data sanitization..");
+                    // Notify parent component after a successful upload
+                    await OnFileUploadSuccess.InvokeAsync();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
+            }
+        }catch(Exception ex)
+        {
+            errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
+        }
+        finally
+        {
+            affected = 0;
+            await LoadData();
+            _isLoading = false;
+            _fileModel = new FileModel();
+        }
+
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            toastService.ShowError($"Error processing file: {errorMessage}");
+        }
+
+    }
+    private async Task PersistEnumerationsAsync(IEnumerable<CrimeDashboardDto> crimes)
+    {
+        try
+        {
+            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeType), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeMotive), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Weather), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(PoliceDistrict), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Severity), ex.Message);
+        }
+    }
+  
+
+
+    record FileModel
+    {
+        public IBrowserFile? File { get; set; }
+    }
+
+    #endregion
+
+
+    #region Lifecycle Method(s)
+    protected override async Task OnInitializedAsync(){ 
+
+        hubConnection = new HubConnectionBuilder()
+       .WithUrl(navigation.ToAbsoluteUri("/notificationHub"))
+       .Build();
+
+        hubConnection.On<string>("ReceiveJobUpdate", (message) =>
+        {
+            toastService.ShowSuccess(message);
+        });
+
+        await hubConnection.StartAsync();
+
+        await LoadData();
     }
     #endregion
+
 }
 
 <style>

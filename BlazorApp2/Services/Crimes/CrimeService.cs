@@ -12,7 +12,7 @@ public class CrimeService : ICrimeService
         _crimeRepository = crimeRepository;
     }
 
-    public async Task AddCrimesAsync(IEnumerable<CrimeDashboardDto> crimeDtos)
+    public async Task<int> AddCrimesAsync(IEnumerable<CrimeDashboardDto> crimeDtos)
     {
         if (crimeDtos == null) throw new ArgumentException(nameof(crimeDtos));
 
@@ -24,6 +24,7 @@ public class CrimeService : ICrimeService
             .Where(c => !existingCaseIds.Contains(c.CaseID))
                     .Select(c => new Crime
         {
+                        BatchId = c.BatchID,
             CaseID = c.CaseID,
             CrimeType = c.CrimeType,
             Date = DateTime.Parse(c.Date),
@@ -51,10 +52,18 @@ public class CrimeService : ICrimeService
             AlcoholOrDrugInvolvement = c.AlcoholOrDrugInvolvement
         });
 
+        int affectedRows = 0;
         if (crimes.Any())
         {
-            await _crimeRepository.AddCrimesAsync(crimes);
+           affectedRows = await _crimeRepository.AddCrimesAsync(crimes);
         }
+
+        return affectedRows;
+    }
+
+    public static bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)
+    {
+        return dtos.Any(i => !i.IsWithoutLatLong);
     }
 
     public async Task<PaginatedCrimesDto> GetCrimesAsync(int page = 1, int pageSize = 10)
@@ -63,12 +72,17 @@ public class CrimeService : ICrimeService
         IEnumerable<CrimeDashboardDto> crimeDtos = result.Item1?.Select(c => new CrimeDashboardDto
         {
             Address = c.Address,
+            Latitude = c.Latitude.HasValue ? c.Latitude.ToString() : "0",
+            Longitude = c.Longitude.HasValue ? c.Longitude.ToString() : "0",
+            IsWithoutLatLong = c.Latitude.HasValue && c.Longitude.HasValue,  
             ArrestDate = c.ArrestDate?.ToString("u"),
             ArrestMade = c.ArrestMade ? 1 : 0,
             CaseID = c.CaseID,
             CCTVCoverage = c.CCTVCoverage,
             CrimeMotive = c.CrimeMotive,
             CrimeType = c.CrimeType,
+            CrimeMotiveId = c.CrimeMotiveId,
+            CrimeTypeId = c.CrimeTypeId,
             Date = c.Date.ToString("u"),
             Description = c.Description,
             MedianIncome = c.MedianIncome.ToString(),
@@ -79,12 +93,14 @@ public class CrimeService : ICrimeService
             RecurringIncident = c.RecurringIncident ? 1 : 0,
             ResponseTimeInMinutes = c.ResponseTimeInMinutes,
             Severity = c.Severity,
+            SeverityId = c.SeverityId,
             StreetLightPresent = c.StreetLightPresent,
             SuspectDescription = c.SuspectDescription,
             Time = c.Time,
             UnemploymentRate = c.UnemploymentRate.ToString(),
             VictimCount = c.VictimCount,
             WeatherCondition = c.WeatherCondition,
+            WeatherConditionId = c.WeatherConditionId,
             WeaponUsed = c.WeaponUsed,
             AlcoholOrDrugInvolvement = c.AlcoholOrDrugInvolvement
         }) ?? [];

@@ -7,40 +7,40 @@
                 <th>Crime Type</th>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Address</th>
+                <th>Address</th>                
                 <th>Severity</th>
-                <th>Weapon Used</th>
-                <th>Victim Count</th>
-                <th>Arrest Date</th>
+                <th>Arrest Made</th>
                 <th>Police District</th>
                 <th>Weather Condition</th>
                 <th>Crime Motive</th>
                 <th>Recurring Incident</th>
+                <th>Is Sanitized?</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var crime in Crimes)
-        {
-            <tr>
+            {
+                <tr>
                     <td>@crime.CaseID</td>
                     <td>@crime.CrimeType</td>
                     <td>@crime.Date</td>
                     <td>@crime.Time.ToString(@"hh\:mm\:ss")</td>
                     <td>@crime.Address</td>
                     <td>@crime.Severity</td>
-                    <td>@crime.WeaponUsed</td>
-                    <td>@crime.VictimCount</td>
-                    <td>@crime.ArrestDate</td>
+                    <td>@string.IsNullOrEmpty(crime.ArrestDate)</td>
                     <td>@crime.PoliceDistrict</td>
                     <td>@crime.WeatherCondition</td>
                     <td>@crime.CrimeMotive</td>
-                    <td>@crime.RecurringIncident</td>
+                    <td>@crime.RecurringIncident</td>                 
+                
+                        <td>@crime.IsWithoutLatLong</td>
+                   
                 </tr>
-        }
+            }
         </tbody>
     </table>
 </div>
 
 @code {
-[Parameter] public IEnumerable<CrimeDashboardDto> Crimes { get; set; } = [];
+    [Parameter] public IEnumerable<CrimeDashboardDto> Crimes { get; set; } = [];
 }

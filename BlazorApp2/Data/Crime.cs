@@ -9,7 +9,16 @@ namespace BlazorApp2.Data
             
         }
 
+        public Guid? BatchId { get; set; }  
         public Guid Id { get; set; }
+        public float? Latitude { get; set; }
+        public float? Longitude { get; set; }
+        public string? SeverityId { get; set; }
+        public string? CrimeTypeId { get; set; }
+        public string? PoliceDistrictId { get; set; }
+        public string? WeatherConditionId { get; set; }
+        public string? CrimeMotiveId { get; set; }
+
         public DateTime DateUploaded { get; set; } = DateTime.Now;
         public int CaseID { get; set; }
         public string? CrimeType { get; set; }

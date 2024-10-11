@@ -114,7 +114,7 @@ namespace BlazorApp2.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FatClusters",
+                name: "SanitizedCrimeRecords",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -342,7 +342,7 @@ namespace BlazorApp2.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_FatClusters_CaseID",
-                table: "FatClusters",
+                table: "SanitizedCrimeRecords",
                 column: "CaseID",
                 unique: true);
 
@@ -393,7 +393,7 @@ namespace BlazorApp2.Migrations
                 name: "CrimeTypes");
 
             migrationBuilder.DropTable(
-                name: "FatClusters");
+                name: "SanitizedCrimeRecords");
 
             migrationBuilder.DropTable(
                 name: "PoliceDistricts");

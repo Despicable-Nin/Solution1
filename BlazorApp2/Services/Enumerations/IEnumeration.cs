@@ -11,7 +11,6 @@ namespace BlazorApp2.Services.Enumerations
         Task<IDictionary<int, string>> GetWeatherConditions(int? key = null);
 
         Task<IDictionary<int, string>> AddCrimeTypes(IEnumerable<string> crimeTypesToAdd);
-        Task AddRangeAsync(params IEntity[] values);
         Task<IDictionary<int, string>> AddCrimeMotives(IEnumerable<string> motivesToAdd);
         Task<IDictionary<int, string>> AddPoliceDistricts(IEnumerable<string> precinctsToAdd);
         Task<IDictionary<int, string>> AddWeatherConditions(IEnumerable<string> weatherConditionsToAdd);
