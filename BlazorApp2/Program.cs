@@ -24,18 +24,14 @@ public class Program
             .MinimumLevel.Information() // Set minimum log level
             .Enrich.FromLogContext()
             .WriteTo.Console() // Log to console (optional)
-            .WriteTo.Seq("http://seq:5341") // Set Seq URL
+            .WriteTo.Seq("http://localhost:5341") // Set Seq URL
             .CreateLogger();
 
-
-
         var builder = WebApplication.CreateBuilder(args);
-
 
         // Use Serilog for logging
         builder.Host.UseSerilog();
         builder.Services.AddBlazoredToast();
-
 
         // Add services to the container.
         builder.Services.AddRazorComponents()
@@ -46,14 +42,8 @@ public class Program
         builder.Services.AddScoped<IdentityRedirectManager>();
         builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException($"Connection string 'DefaultConnection' not found.");
-
-        Console.WriteLine(connectionString);
-
-        builder.Services.AddHangfire(config => config.UseSqlServerStorage(connectionString));
-        builder.Services.AddHangfireServer();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
@@ -70,9 +60,9 @@ public class Program
         builder.Services.AddMyServices();
         builder.Services.AddHttpClient<NominatimGeocodingService>();
         builder.Services.AddMyBackgroundServices();
-     
-
-
+        builder.Services.AddHangfire(config => config.UseSqlServerStorage(connectionString));
+        builder.Services.AddHangfireServer();
+        builder.Services.AddSignalR();
 
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(@"/var/dpkeys"));  // Mount this volume in your docker-compose file
@@ -89,16 +79,15 @@ public class Program
             app.UseDeveloperExceptionPage();
             app.UseMigrationsEndPoint();
             // Disable HTTPS redirection for development
-            app.UseHttpsRedirection(); // Comment out this line
+            //app.UseHttpsRedirection(); // Comment out this line
         }
         else
         {
             app.UseExceptionHandler("/Error");
             app.UseHsts();
             app.UseHttpsRedirection();  // Keep this for production
-        }
+       }
 
-        app.UseHttpsRedirection();
         app.UseStaticFiles();
         app.UseAntiforgery();
 
@@ -107,6 +96,10 @@ public class Program
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+
+        // Map SignalR hub
+        app.MapHub<JobHub>("/notificationHub");
 
         // Add Hangfire Dashboard (optional)
         app.UseHangfireDashboard();

@@ -14,6 +14,7 @@
 @using Blazored.Toast.Configuration
 @using Hangfire
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.EntityFrameworkCore
 @using Serilog
 
@@ -24,13 +25,14 @@
 @inject IEnumeration enumService
 @inject IJobService jobService
 @inject JobProcessingService jobProcessor
+@inject NavigationManager navigation
+
 
 <PageTitle>Crime Records</PageTitle>
 
 <h1>Crime Records</h1>
 
 <!-- Inline file upload form -->
-@* <CrimeUpload OnFileUploadSuccess="HandleFileUpload" /> *@
 <div class="container mb-4">
     <EditForm Model="_fileModel" enctype="multipart/form-data" OnValidSubmit="HandleFileUpload">
         <div class="input-group">
@@ -90,9 +92,13 @@
     public int TotalRecords { get; private set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalRecords / PageSize);
 
+    private HubConnection? hubConnection;
+
     #region Method(s)
     private async Task LoadData()
     {
+
+
         _isLoading = true; // Set loading to true
         try
         {
@@ -116,21 +122,24 @@
 
             StateHasChanged(); // Trigger re-render
         }
+
+
     }
 
     private async Task OnSanitizeButtonClick()
     {
+        //await hubConnection!.SendAsync("SendJobUpdate", "This is a test message!");
         try
         {
             BackgroundJob.Enqueue(() => jobProcessor.ProcessJobAsync());
-
-            toastService.ShowSuccess("Sanitizing...");
 
         }catch(Exception ex)
         {
             toastService.ShowError($"An error occurred: {ex.Message}. {ex.InnerException?.Message}");
 
         }
+
+        toastService.ShowSuccess("Sanitizing...");
     }
 
     private async Task ChangePage(int newPage)
@@ -160,6 +169,7 @@
     {
         var affected = 0; 
         var batchId = Guid.NewGuid();
+        var errorMessage = string.Empty;
 
         try
         {
@@ -184,8 +194,6 @@
             {
                 throw new Exception("File (*.csv) may be corrupt or is invalid format. ");
             }
-
-
 
             while ((line = await reader.ReadLineAsync()) != null)
             {
@@ -231,29 +239,34 @@
 
             try
             {
-               
+                await PersistEnumerationsAsync(crimes);
+
                 // add crimes to the database
                 affected = await crimeService.AddCrimesAsync(crimes.Distinct());
                 if (affected == 0)
                 {
-                    toastService.ShowInfo("Upload complete but no changes. This may be caused by duplicate entries.");
+                    throw new Exception("Upload complete but no changes. This may be caused by duplicate entries.");
                 }else
                 {
-                   await jobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
+                    await jobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
+
+                    toastService.ShowSuccess("Finished uploading data..", settings =>
+                    {
+                        settings.Timeout = 20;
+                    });
+                    toastService.ShowInfo("Job created for data sanitization..");
                     // Notify parent component after a successful upload
                     await OnFileUploadSuccess.InvokeAsync();
+
                 }
             }
             catch (Exception ex)
             {
-                toastService.ShowError($"Error processing file: {ex.Message}");
+                errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
             }
-
-
         }catch(Exception ex)
         {
-            toastService.ShowError($"An error occurred: {ex.Message}");
-
+            errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
         }
         finally
         {
@@ -262,9 +275,13 @@
             _isLoading = false;
             _fileModel = new FileModel();
         }
-      
-    }
 
+        if (!string.IsNullOrEmpty(errorMessage))
+        {
+            toastService.ShowError($"Error processing file: {errorMessage}");
+        }
+
+    }
     private async Task PersistEnumerationsAsync(IEnumerable<CrimeDashboardDto> crimes)
     {
         try
@@ -273,7 +290,7 @@
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeType), ex.Message);
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeType), ex.Message);
         }
 
         try
@@ -282,7 +299,7 @@
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeMotive), ex.Message);
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeMotive), ex.Message);
         }
 
         try
@@ -291,7 +308,7 @@
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Weather), ex.Message);
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Weather), ex.Message);
         }
 
         try
@@ -300,7 +317,7 @@
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(PoliceDistrict), ex.Message);
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(PoliceDistrict), ex.Message);
         }
 
         try
@@ -309,9 +326,10 @@
         }
         catch (Exception ex)
         {
-            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Severity), ex.Message);
+            Log.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Severity), ex.Message);
         }
     }
+  
 
 
     record FileModel
@@ -323,7 +341,21 @@
 
 
     #region Lifecycle Method(s)
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync(){ 
+
+        hubConnection = new HubConnectionBuilder()
+       .WithUrl(navigation.ToAbsoluteUri("/notificationHub"))
+       .Build();
+
+        hubConnection.On<string>("ReceiveJobUpdate", (message) =>
+        {
+            toastService.ShowSuccess(message);
+        });
+
+        await hubConnection.StartAsync();
+
+        await LoadData();
+    }
     #endregion
 
 }

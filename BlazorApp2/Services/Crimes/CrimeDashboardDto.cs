@@ -7,12 +7,19 @@ namespace BlazorApp2.Services.Crimes;
 public record CrimeDashboardDto
 {
     public Guid? BatchID { get; init; }
+    public string? SeverityId { get; set; }
+    public string? CrimeTypeId { get; set; }
+    public string? PoliceDistrictId { get; set; }
+    public string? WeatherConditionId { get; set; }
+    public string? CrimeMotiveId { get; set; }
     public int CaseID { get; init; }
     [Display(Name = "Type")]
     public string? CrimeType { get; init; }
     public string? Date { get; init; }
     public TimeSpan Time { get; init; }
     public string? Address { get; init; }
+    public string? Latitude { get; init; }
+    public string? Longitude { get; init; }
     public string? Severity { get; init; }
     public string? Description { get; init; }
     public string? WeaponUsed { get; init; }
