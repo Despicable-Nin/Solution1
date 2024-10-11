@@ -20,6 +20,18 @@ namespace BlazorApp2.Repositories
             return job!;
         }
 
+        public async Task<IEnumerable<Job>> GetJobsByStatus(JobStatus jobStatus, JobType? jobType = null)
+        {
+            var jobs = dbContext.Jobs.AsNoTracking().Where(i => i.Status == jobStatus);
+
+            if (jobType.HasValue)
+            {
+                jobs = jobs.Where(i => i.JobType == jobType);
+            }
+
+            return await jobs.ToArrayAsync();
+        }
+
         public async Task<JobStatus> GetJobStatus(Guid id)
         {
             var job = await dbContext.Jobs.FirstOrDefaultAsync(i => i.Id == id);

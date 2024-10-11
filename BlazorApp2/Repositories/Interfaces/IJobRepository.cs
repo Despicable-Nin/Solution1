@@ -10,5 +10,6 @@ namespace BlazorApp2.Repositories.Interfaces
         Task<Job> CreateJob(Job jobTyp);
         Task<Job> UpdateJob(Job job);
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+        Task<IEnumerable<Job>> GetJobsByStatus(JobStatus jobStatus, JobType? jobType = null);
     }
 }

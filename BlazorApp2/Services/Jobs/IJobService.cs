@@ -10,8 +10,11 @@ namespace BlazorApp2.Services.Jobs
         Task<Guid> UpdateJob(JobDto job);
         void DeleteJob(Guid jobId);
         Task<JobDto?> GetJobByIdAsync(Guid jobId);
+        Task<IEnumerable<JobDto>> GetFailedJobsAsync();
+        Task<IEnumerable<JobDto>> GetSuccessfulJobsAsync();
         Task<JobDto?> GetAJob();
         Task<Guid> CreateJobAsync(string batchId, JobType jobType);
+        Task<IEnumerable<JobDto>> GetHardFailedJobsAsync();
     }
 
     public class JobService(IJobRepository jobRepository) : IJobService
@@ -43,33 +46,36 @@ namespace BlazorApp2.Services.Jobs
             var job = await jobRepository.GetSingleUnprocessedJob(JobType.Upload);
             if (job == null) return null;
 
-            return new JobDto
-            {
-                Id = job.Id,
-                JobType = job.JobType,
-                Name = job.Name,
-                LastUpdatedDateTime = job.LastUpdatedDateTime,
-                Retries = job.Retries,
-                Status = job.Status,
-                CreatedDateTime = job.CreatedDateTime,
-            };
+            return ToDto(job);
         }
+
+        public async Task<IEnumerable<JobDto>> GetFailedJobsAsync()
+        {
+            var result = await jobRepository.GetJobsByStatus(JobStatus.Failed);
+            return ToDto(result);
+        }
+
+        public async Task<IEnumerable<JobDto>> GetHardFailedJobsAsync()
+        {
+            var result = await jobRepository.GetJobsByStatus(JobStatus.HardFail);
+            return ToDto(result);
+        }
+
+      
 
         public async Task<JobDto?> GetJobByIdAsync(Guid jobId)
         {
             var job = await jobRepository.GetJobByIdAsync(jobId);
             if (job == null) return null;
+            return ToDto(job);
+        }
 
-            return new JobDto
-            {
-                Id = job.Id,
-                JobType = job.JobType,
-                Name = job.Name,
-                LastUpdatedDateTime = job.LastUpdatedDateTime,
-                Retries = job.Retries,
-                Status = job.Status ,
-                CreatedDateTime = job.CreatedDateTime,
-            };
+       
+
+        public async Task<IEnumerable<JobDto>> GetSuccessfulJobsAsync()
+        {
+            var result = await jobRepository.GetJobsByStatus(JobStatus.Suceeded);
+            return ToDto(result);
         }
 
         public async Task<Guid> UpdateJob(JobDto jobDto)
@@ -95,6 +101,27 @@ namespace BlazorApp2.Services.Jobs
 
             return job.Id;
 
+        }
+
+        private static IEnumerable<JobDto>? ToDto(IEnumerable<Job>? result)
+        {
+            if (result == null) return null;
+            return result.Select(ToDto) ?? [];
+        }
+
+        private static JobDto? ToDto(Job? job)
+        {
+            if (job == null) return null;
+            return new JobDto
+            {
+                Id = job.Id,
+                JobType = job.JobType,
+                Name = job.Name,
+                LastUpdatedDateTime = job.LastUpdatedDateTime,
+                Retries = job.Retries,
+                Status = job.Status,
+                CreatedDateTime = job.CreatedDateTime,
+            };
         }
     }
 

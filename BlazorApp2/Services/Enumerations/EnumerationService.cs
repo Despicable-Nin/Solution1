@@ -3,37 +3,13 @@ using BlazorApp2.Data;
 using BlazorApp2.Data.Interfaces;
 using BlazorApp2.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 namespace BlazorApp2.Services.Enumerations
 {
     public record CrimeTypeDto(string Title);
     public class EnumerationService(ICrimeMotiveRepository crimeMotiveRepository, ICrimeTypeRepository crimeTypeRepository, IPoliceDistrictRepository policeDistrictRepository, ISeverityRepository severityRepository, IWeatherRepository weatherRepository) : IEnumeration
     {
-        public async Task AddRangeAsync(params IEntity[] values)
-        {
-            ArgumentNullException.ThrowIfNull(values);
-
-            var typeToActionMap = new Dictionary<Type, Func<IEnumerable<object>, Task>>
-    {
-        { typeof(CrimeMotive), async (vals) => await crimeMotiveRepository.AddCrimeMotivesAsync(vals.Cast<CrimeMotive>()) },
-        { typeof(CrimeType), async (vals) => await crimeTypeRepository.AddCrimeTypesAsync(vals.Cast<CrimeType>()) },
-        { typeof(PoliceDistrict), async (vals) => await policeDistrictRepository.AddPoliceDistrictsAsync(vals.Cast<PoliceDistrict>()) },
-        { typeof(Severity), async (vals) => await severityRepository.AddSeveritiesAsync(vals.Cast<Severity>()) },
-        { typeof(Weather), async (vals) => await weatherRepository.AddWeatherConditionsAsync(vals.Cast<Weather>()) }
-    };
-
-            var firstValueType = values[0].GetType();
-
-            if (values.All(v => v.GetType() == firstValueType) && typeToActionMap.TryGetValue(firstValueType, out Func<IEnumerable<object>, Task>? action))
-            {
-                await action(values);
-            }
-            else
-            {
-                throw new ArgumentException("Invalid type");
-            }
-        }
-
         /// <summary>
         /// Add crime types to the database
         /// </summary>
@@ -55,13 +31,13 @@ namespace BlazorApp2.Services.Enumerations
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Logger.Error(ex.Message, ex.InnerException.Message);
             }
             return await GetCrimeTypes();
         }
 
         /// <summary>
-        /// Add crime motives to the database
+        /// Add crime precincts to the database
         /// </summary>
         /// <param name="motivesToAdd"></param>
         /// <returns></returns>
@@ -80,7 +56,7 @@ namespace BlazorApp2.Services.Enumerations
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Logger.Error(ex.Message, ex.InnerException.Message);
             }
             return await GetCrimeMotives();
         }
@@ -95,16 +71,17 @@ namespace BlazorApp2.Services.Enumerations
             try
             {
                 var precincts = await GetPoliceDistricts();
-                var newPrecincts = precinctsToAdd.Except(precincts.Select(c => c.Value)).ToArray();
+                var existingPrecincts = precincts.Select(i => i.Value.ToLower()).ToHashSet();
+                var newMotives = precinctsToAdd.Where(newMotives => !existingPrecincts.Contains(newMotives.ToLower())).ToArray();
 
-                if (newPrecincts.Length != 0)
+                if (newMotives.Length != 0)
                 {
-                    await policeDistrictRepository.AddPoliceDistrictsAsync(newPrecincts.Select(s => new PoliceDistrict(s)).ToArray());
+                    await policeDistrictRepository.AddPoliceDistrictsAsync(newMotives.Select(s => new PoliceDistrict(s)).ToArray());
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
+                Log.Logger.Error(ex.Message, ex.InnerException.Message);
             }
             return await GetPoliceDistricts();
         }
@@ -136,7 +113,7 @@ namespace BlazorApp2.Services.Enumerations
             catch (Exception ex)
             {
                 // Log the exception
-                Console.WriteLine(ex.Message);
+                Log.Logger.Error(ex.Message, ex.InnerException.Message);
             }
 
             // Return the updated list of severities
@@ -180,7 +157,7 @@ namespace BlazorApp2.Services.Enumerations
 
 
         /// <summary>
-        /// // Get crime motives from the database
+        /// // Get crime precincts from the database
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
@@ -213,10 +190,10 @@ namespace BlazorApp2.Services.Enumerations
         /// <returns></returns>
         public async Task<IDictionary<int, string>> GetPoliceDistricts(int? key = null)
         {
-            IEnumerable<PoliceDistrict> policeDistricts = [];
+            IEnumerable<PoliceDistrict> policeDistricts = await policeDistrictRepository.GetPoliceDistrictsAsync();
             return key.HasValue ?
-                policeDistricts.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
-                policeDistricts.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+                policeDistricts.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                policeDistricts.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
         }
 
         /// <summary>
@@ -226,10 +203,10 @@ namespace BlazorApp2.Services.Enumerations
         /// <returns></returns>
         public async Task<IDictionary<int, string>> GetSeverities(int? key = null)
         {
-            IEnumerable<Severity> severities = [];
+            IEnumerable<Severity> severities = await severityRepository.GetSeveritiesAsync();
             return key.HasValue ?
-                severities.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
-                severities.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+                severities.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                severities.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
 
         }
 
@@ -240,10 +217,10 @@ namespace BlazorApp2.Services.Enumerations
         /// <returns></returns>
         public async Task<IDictionary<int, string>> GetWeatherConditions(int? key = null)
         {
-            IEnumerable<Weather> weatherConditions = [];
+            IEnumerable<Weather> weatherConditions = await weatherRepository.GetWeatherConditionsAsync();
             return key.HasValue ?
-                weatherConditions.ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
-                weatherConditions.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
+                weatherConditions.Where(x => x.Id == key).ToDictionary(x => x.Id, x => x.Title ?? string.Empty) :
+                weatherConditions.ToDictionary(x => x.Id, x => x.Title ?? string.Empty);
         }
     }
 }

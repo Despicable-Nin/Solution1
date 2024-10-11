@@ -15,6 +15,7 @@
 @using Hangfire
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
+@using Serilog
 
 
 @inject IWebHostEnvironment WebHotEnv
@@ -184,7 +185,7 @@
                 throw new Exception("File (*.csv) may be corrupt or is invalid format. ");
             }
 
-           
+
 
             while ((line = await reader.ReadLineAsync()) != null)
             {
@@ -230,7 +231,7 @@
 
             try
             {
-
+               
                 // add crimes to the database
                 affected = await crimeService.AddCrimesAsync(crimes.Distinct());
                 if (affected == 0)
@@ -262,6 +263,54 @@
             _fileModel = new FileModel();
         }
       
+    }
+
+    private async Task PersistEnumerationsAsync(IEnumerable<CrimeDashboardDto> crimes)
+    {
+        try
+        {
+            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeType), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddCrimeMotives(crimes.Select(c => c.CrimeMotive).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(CrimeMotive), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddWeatherConditions(crimes.Select(c => c.WeatherCondition).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Weather), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddPoliceDistricts(crimes.Select(c => c.PoliceDistrict).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(PoliceDistrict), ex.Message);
+        }
+
+        try
+        {
+            await enumService.AddSeverities(crimes.Select(c => c.Severity).Distinct()!);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger.Warning(ex, "Persisting '{Entity}' failed. Reason: {Reason}", nameof(Severity), ex.Message);
+        }
     }
 
 
