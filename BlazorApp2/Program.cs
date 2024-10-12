@@ -99,7 +99,7 @@ public class Program
 
 
         // Map SignalR hub
-        app.MapHub<JobHub>("/notificationHub");
+        app.MapHub<NotificationHub>("/notificationHub");
 
         // Add Hangfire Dashboard (optional)
         app.UseHangfireDashboard();

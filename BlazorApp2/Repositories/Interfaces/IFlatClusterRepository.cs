@@ -1,4 +1,4 @@
-﻿using BlazorApp2.Data;
+﻿using BlazorApp2.Services.Clustering;
 
 namespace BlazorApp2.Repositories.Interfaces
 {

@@ -9,6 +9,7 @@
 @using BlazorApp2.Services.Enumerations
 @using BlazorApp2.Services.Geocoding
 @using System.Collections.Concurrent
+@using Blazored.Toast.Configuration
 @using OpenLayers.Blazor
 
 
@@ -16,6 +17,7 @@
 @inject ICrimeService CrimeService
 @inject IEnumeration EnumService
 @inject NominatimGeocodingService GeocodingService
+@inject IToastService ToastService
 
 <h3>K-Means Clustering Results</h3>
 <div class="container">
@@ -27,34 +29,37 @@
                     <input type="number" class="form-control col-sm-3" id="numberOfClusters" @bind="NumberOfCluster" placeholder="Number of cluster" min="3" aria-label="Number of cluster" aria-describedby="basic-addon2">
                     <div class="input-group-append">
                         <button class="btn btn-primary" @onclick="PerformClustering">Perform Clustering</button>
-                        <button class="btn btn-danger" @onclick="DeleteAllClusters" disabled="@IsLoading">Delete All Clusters</button>
+                        <button class="btn btn-danger" @onclick="ClearClusters" disabled="@Loading">Delete All Clusters</button>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-sm-12">
             <div class="form-check checkbox-aligner">
-                <input class="form-check-input mb-2" type="checkbox" id="showCheckboxes" @bind="ShowCheckboxes">
+                <input class="form-check-input mb-2" type="checkbox" id="showCheckboxes" @bind="ShowFeatures">
                 <label class="form-check-label" for="showCheckboxes">&nbsp;Hide/Show Cluster Properties</label>
             </div>
         </div>
     </div>
 
     <hr />
-    <div class="checkbox-container" style="@(ShowCheckboxes ? "" : "display: none;")">
-        @foreach (var property in FlatClusterProperties)
+    <div class="checkbox-container" style="@(ShowFeatures ? "" : "display: none;")">
+        @foreach (var property in sanitizedRecordProperties)
         {
             <div class="checkbox-item">
-                <input type="checkbox" @bind="@SelectedProperties[property]" /> @property
+                <input type="checkbox" @bind="@SelectedFeatures[property]" /> @property
             </div>
         }
     </div>
 </div>
 
 
+<BlazoredToasts Position="ToastPosition.TopRight"
+                Timeout="5"
+                ShowProgressBar="true" />
 
 <hr />
-@if (IsLoading)
+@if (Loading)
 {
     <div class="text-center">
         <div class="spinner-border" role="status">
@@ -90,7 +95,6 @@ else if (Clusters != null)
 {
     <div class="container">
         <OpenStreetMap Style="height:480px; width:640px" Zoom="18" Center="@(new Coordinate(initialLongitude, initialLatitude))">
-
             <Features>
                 @foreach (var cluster in Clusters)
                 {
@@ -122,135 +126,78 @@ else if (Clusters != null)
 </style>
 
 @code {
-    private bool ShowCheckboxes = true;
-    private bool IsLoading = false;
-    private int SelectedCount { get; set; } = 0;
-    private int NumberOfCluster { get; set; } = 3;
+    private const double initialLongitude = 121.04763778648794D, initialLatitude = 14.372935416829094D;
 
-    private string[] FlatClusterProperties { get; set; } = [];
-    private Dictionary<string, bool> SelectedProperties { get; set; } = [];
-    private List<SanitizedCrimeRecord> FlatClusterDump = [];
+    bool ShowFeatures { get; set; } = true;
+    bool Loading { get; set; }
+    int NumberOfCluster { get; set; } = 3;
 
-    private IEnumerable<ClusterResult>? Clusters = [];
-    private double initialLongitude = 121.04763778648794D, initialLatitude = 14.372935416829094D;
+    IEnumerable<ClusterResult>? Clusters { get; set; } = [];
+    Dictionary<string, bool> SelectedFeatures { get; set; } = [];
 
-
-    private bool HasFlatClusters => FlatClusterDump.Count > 0;
-
-
-    protected override void OnInitialized()
-    {
-        // Get the property names from the Crime class
-        FlatClusterProperties = GenericHelper.GetProperties<SanitizedCrimeRecord>().Except(["Id"]).ToArray();
-
-        var initialProperties = new[]{nameof(SanitizedCrimeRecord.CaseID),
+    readonly string[] sanitizedRecordProperties = GenericHelper.GetProperties<SanitizedCrimeRecord>().Except(["Id"]).ToArray();
+    readonly string[] initialProperties = new[]{nameof(SanitizedCrimeRecord.CaseID),
         nameof(SanitizedCrimeRecord.CrimeType),
         nameof(SanitizedCrimeRecord.Latitude),
         nameof(SanitizedCrimeRecord.Longitude)};
 
-
+    protected override void OnInitialized()
+    {
         // Initialize the SelectedProperties dictionary
-        foreach (var property in FlatClusterProperties)
+        foreach (var property in sanitizedRecordProperties)
         {
-            SelectedProperties[property] = false; // All checkboxes start unchecked
+            // All checkboxes start unchecked
+            SelectedFeatures[property] = false;
             if (initialProperties.Contains(property))
             {
-                SelectedProperties[property] = true; // CaseID is selected by default
+                // CaseID is selected by default
+                SelectedFeatures[property] = true;
             }
-
         }
     }
 
     private async Task PerformClustering()
     {
-
-        IsLoading = true;
-
-        var dump = await CrimeService.GetCrimesAsync(1, int.MaxValue);
-
-        if (dump.Crimes.Count() > 0)
+        Loading = true;
+        try
         {
-            // Fetch data to transform
-            //var data = await CrimeService.GetCrimesAsync(1, int.MaxValue);
-            // var crimeMotives = await EnumService.GetCrimeMotives();
-            // var crimeTypes = await EnumService.GetCrimeTypes();
-            // var severities = await EnumService.GetSeverities();
-            // var precincts = await EnumService.GetPoliceDistricts();
-            // var weathers = await EnumService.GetWeatherConditions();
+            var paginatedRecordOfCrimes = await CrimeService.GetCrimesAsync(1, int.MaxValue);
 
-            // var addressBook = new ConcurrentDictionary<string, (double Latitude, double Longitude)>();
-            // foreach (var crime in data.Crimes)
-            // {
-            //     (double Latitude, double Longitude) result = (0D, 0D);
-            //     if (addressBook.ContainsKey(crime.Address))
-            //     {
-            //         result = addressBook.GetValueOrDefault(crime.Address);
-            //     }
-            //     else
-            //     {
-            //         result = await GeocodingService.GetLatLongAsync(crime.Address);
-            //         addressBook.TryAdd(crime.Address, (result.Latitude, result.Longitude));
-            //         await Task.Delay(1000);
-            //     }
-            // }
-
-            // Save first -- generate a temporary data table
-            foreach (var crime in dump.Crimes)
+            if (!paginatedRecordOfCrimes.Crimes.Any())
             {
-                var date = DateTime.Parse(crime.Date);
-                var flatCluster = new SanitizedCrimeRecord
-                    {
-                        NearbyLandmarkLatitude = "0",
-                        NearbyLandmarkLongitude = "0",
-                        CaseID = crime.CaseID.ToString(),
-                        CrimeType = crime.CrimeTypeId ?? "0",
-                        Date = date.Ticks.ToString(),
-                        Time = crime.Time.Ticks.ToString(),
-                        Latitude = crime.Latitude ?? "0",
-                        Longitude = crime.Longitude ?? "0", // Corrected Longitude assignment
-                        SeverityId = crime.SeverityId ?? "0",
-                        VictimCount = crime.VictimCount.ToString(),
-                        ArrestMade = crime.ArrestMade.ToString(),
-                        ArrestDate = crime.ArrestDate,
-                        ResponseTimeInMinutes = crime.ResponseTimeInMinutes.ToString(),
-                        PoliceDistrictId = crime.PoliceDistrictId ?? "0",
-                        WeatherConditionId = crime.WeatherConditionId ?? "0",
-                        CrimeMotiveId = crime.CrimeMotiveId ?? "0",
-                        RecurringIncident = crime.RecurringIncident.ToString(),
-                        PopulationDensityPerSqKm = crime.PopulationDensityPerSqKm.ToString(),
-                        UnemploymentRate = crime.UnemploymentRate,
-                        MedianIncome = crime.MedianIncome,
-                        ProximityToPoliceStationInKm = crime.ProximityToPoliceStationInKm,
-                        StreetLightPresent = (crime.StreetLightPresent ? 1 : 0).ToString(),
-                        CCTVCoverage = (crime.CCTVCoverage ? 1 : 0).ToString(),
-                        AlcoholOrDrugInvolvement = (crime.AlcoholOrDrugInvolvement ? 1 : 0).ToString(),
-                    };
-
-                FlatClusterDump.Add(flatCluster);
+                throw new Exception("No records to cluster");
             }
 
-            //await ClusteringService.AddFlatClusterRangeAsync(FlatClusterDump);
+            if (paginatedRecordOfCrimes.Crimes.Count() > 0)
+            {
+                var sanitizedRecords = paginatedRecordOfCrimes.Crimes.Select(c => ClusteringService.ToSanitizedCrimeRecord(c)).ToArray();
+
+                var features = SelectedFeatures
+                  .Where(x => x.Value)
+                  .Where(x => x.Key != nameof(SanitizedCrimeRecord.CaseID))
+                  .Select(x => x.Key).ToArray();
+
+                Clusters = ClusteringService.PerformKMeansClustering(sanitizedRecords, features, NumberOfCluster);
+            }
+
         }
-
-        var features = SelectedProperties
-        .Where(x => x.Value)
-        .Where(x => x.Key != nameof(SanitizedCrimeRecord.CaseID))
-        .Select(x => x.Key).ToArray();
-
-        Clusters = ClusteringService.PerformKMeansClustering(FlatClusterDump, features, NumberOfCluster);
-        IsLoading = false;
+        catch (Exception ex)
+        {
+            ToastService.ShowError(ex.Message);
+        }
+        Loading = false;
     }
 
-    private async Task DeleteAllClusters()
+    private void ClearClusters()
     {
-        IsLoading = true;
-
-        // Call the delete method from the service
-        await ClusteringService.DeleteAllFlatClustersAsync();
-
-        // Optionally clear cluster results if needed
-       Clusters = [];
-
-        IsLoading = false;
+        Clusters = [];
+        ToastService.ShowInfo("Clusters cleared successfully.");
     }
 }
+<style>
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: .25em;
+    }
+</style>

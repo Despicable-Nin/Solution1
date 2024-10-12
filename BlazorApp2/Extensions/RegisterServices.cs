@@ -18,7 +18,7 @@ public static class RegisterServices
         services.AddScoped<IClusteringService, ClusteringService>();
         services.AddScoped<IJobService, JobService>();
         services.AddSingleton<NominatimGeocodingService>();
-        services.AddScoped<JobProcessingService>();
+      
 
         return services;
     }
@@ -31,7 +31,6 @@ public static class RegisterServices
         services.AddScoped<IPoliceDistrictRepository, PoliceDistrictRepository>();
         services.AddScoped<ISeverityRepository, SeverityRepository>();
         services.AddScoped<IWeatherRepository, WeatherConRepository>();
-        services.AddScoped<IFlatClusterRepository, FlatClusterRepository>();
         services.AddScoped<IJobRepository, JobRepository>();
 
         return services;
@@ -40,6 +39,7 @@ public static class RegisterServices
     public static IServiceCollection AddMyBackgroundServices(this IServiceCollection services)
     {
         // Register the background service
+        services.AddScoped<JobProcessingService>();
         //services.AddHostedService<UploadBackgroundService>();
         //services.AddHostedService<GISBackgroundService>();
         //services.AddSingleton<SanitizerBackgroundService>();
