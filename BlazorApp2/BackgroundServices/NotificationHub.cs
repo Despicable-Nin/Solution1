@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace BlazorApp2.BackgroundServices;
 
-public class JobHub : Hub
+public class NotificationHub : Hub
 {
     public async Task SendJobUpdate(string message)
     {

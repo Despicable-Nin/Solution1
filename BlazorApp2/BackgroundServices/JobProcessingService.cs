@@ -14,10 +14,12 @@ public class JobProcessingService(
     IEnumeration enumService,
     IJobService jobService, 
     NominatimGeocodingService geocodingService,
-    IHubContext<JobHub> hubContext)
+    IHubContext<NotificationHub> hubContext)
 {
     public async Task ProcessJobAsync()
     {
+        Log.Logger.Information($"Started {nameof(JobProcessingService.ProcessJobAsync)}");
+
         JobDto? jobDto = await jobService.GetAJob();
 
         if (jobDto == null)
@@ -26,35 +28,29 @@ public class JobProcessingService(
             return;
         }
 
-        Log.Logger.Information("Job fetched: {Job}", jobDto);
-
-        Log.Information("Starting job processing for {JobId}", jobDto.Id);
-
         if (!Guid.TryParse(jobDto.Name, out var batchId))
         {
-            Log.Error("Invalid job name: {JobName}", jobDto.Name);
             throw new InvalidOperationException($"Job {jobDto} has an invalid name. Should be of type Guid");
-        }
-
-        Log.Information("Job fetched: {Job}", jobDto);
-        if (jobDto.Status == JobStatus.Created)
-        {
-            try
-            {
-                jobDto = jobDto with { Status = JobStatus.Running };
-                await jobService.UpdateJob(jobDto);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to update job: {Job}", jobDto);
-            }
         }
 
         try
         {
+
+            if (jobDto.Status == JobStatus.Created)
+            {
+                try
+                {
+                    await jobService.UpdateJob(jobDto with { Status = JobStatus.Running });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to update job: {Job}", jobDto);
+                }
+            }
+
             var dto = await crimeRepository.GetCrimesByBatchIdAsync(batchId);
             var crimes = dto.Where(i => i.Latitude == null || i.Longitude == null).ToArray();
-            if (crimes.Any())
+            if (crimes.Length != 0)
             {
                await PersistEnumerationsAsync(crimes);
             }
@@ -81,6 +77,7 @@ public class JobProcessingService(
                     await Task.Delay(1000);
                 }
 
+                //hydrate fields
                 crime.Longitude = (float)result.Longitude;
                 crime.Latitude = (float)result.Latitude;
                 crime.PoliceDistrictId = precincts.SingleOrDefault(i => i.Value == crime.PoliceDistrict).Key.ToString() ?? "0";
@@ -94,8 +91,10 @@ public class JobProcessingService(
 
             await crimeRepository.SaveChangesAsync(CancellationToken.None);
 
-            Log.Logger.Information("Successfully processed ...");
+            jobDto = jobDto with { Status = JobStatus.Suceeded };
+            await jobService.UpdateJob(jobDto);
 
+            Log.Logger.Information("Successfully processed ...");
          
         }
         catch (Exception ex)
@@ -114,8 +113,6 @@ public class JobProcessingService(
         }
         finally
         {
-            jobDto = jobDto with { Status = JobStatus.Suceeded };
-            await jobService.UpdateJob(jobDto);
             await hubContext.Clients.All.SendAsync("ReceiveJobUpdate", "Finished sanitizing data.");
         }
     }
