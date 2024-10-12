@@ -7,7 +7,10 @@ namespace BlazorApp2.Services
     {
         public static string[] GetProperties<T>()
         {
-            return typeof(T).GetProperties().Select(p => p.Name).ToArray();
+            return typeof(T).GetProperties()
+                .OrderBy(i => i.Name)
+                .Select(p => p.Name)
+                .ToArray();
         }
 
         public static int CountProperties<T>() => typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Length;

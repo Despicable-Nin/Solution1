@@ -1,14 +1,15 @@
 ﻿using BlazorApp2.Data;
 using BlazorApp2.Repositories.Interfaces;
+using BlazorApp2.Services.Crimes;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Serilog;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BlazorApp2.Services.Clustering;
-public partial class ClusteringService(IFlatClusterRepository flatClusterRepository) : IClusteringService
+public partial class ClusteringService() : IClusteringService
 {
     private readonly MLContext _mlContext = new();
-    private readonly IFlatClusterRepository _flatClusterRepository = flatClusterRepository;
 
     public List<ClusterResult> PerformKMeansClustering(IEnumerable<SanitizedCrimeRecord> data, string[] features, int numberOfClusters = 3)
     {
@@ -73,25 +74,39 @@ public partial class ClusteringService(IFlatClusterRepository flatClusterReposit
         return temp.OrderBy(x => x.Count).ToList();
     }
 
-    //these methods are for the CRUD operations -- might move them to a separate service
-    public async Task AddFlatClusterRangeAsync(IEnumerable<SanitizedCrimeRecord> flatClusters)
+    public SanitizedCrimeRecord ToSanitizedCrimeRecord(CrimeDashboardDto crime)
     {
-        await _flatClusterRepository.AddFlatClustersAsync(flatClusters);
+        var date = DateTime.Parse(crime.Date ?? DateTime.MinValue.ToString());
+        var sanitizedRecord = new SanitizedCrimeRecord
+        {
+            NearbyLandmarkLatitude = "0",
+            NearbyLandmarkLongitude = "0",
+            CaseID = crime.CaseID.ToString(),
+            CrimeType = crime.CrimeTypeId ?? "0",
+            Date = date.Ticks.ToString(),
+            Time = crime.Time.Ticks.ToString(),
+            Latitude = crime.Latitude ?? "0",
+            Longitude = crime.Longitude ?? "0", // Corrected Longitude assignment
+            SeverityId = crime.SeverityId ?? "0",
+            VictimCount = crime.VictimCount.ToString(),
+            ArrestMade = crime.ArrestMade.ToString(),
+            ArrestDate = crime.ArrestDate ?? DateTime.MinValue.ToString(),
+            ResponseTimeInMinutes = crime.ResponseTimeInMinutes.ToString(),
+            PoliceDistrictId = crime.PoliceDistrictId ?? "0",
+            WeatherConditionId = crime.WeatherConditionId ?? "0",
+            CrimeMotiveId = crime.CrimeMotiveId ?? "0",
+            RecurringIncident = crime.RecurringIncident.ToString(),
+            PopulationDensityPerSqKm = crime.PopulationDensityPerSqKm.ToString(),
+            UnemploymentRate = crime.UnemploymentRate ?? "0",
+            MedianIncome = crime.MedianIncome ?? "0",
+            ProximityToPoliceStationInKm = crime.ProximityToPoliceStationInKm ?? "0",
+            StreetLightPresent = (crime.StreetLightPresent ? 1 : 0).ToString(),
+            CCTVCoverage = (crime.CCTVCoverage ? 1 : 0).ToString(),
+            AlcoholOrDrugInvolvement = (crime.AlcoholOrDrugInvolvement ? 1 : 0).ToString(),
+        };
+
+        return sanitizedRecord;
     }
 
-    public async Task AddFlatClusterAsync(SanitizedCrimeRecord flatCluster)
-    {
-        await _flatClusterRepository.AddFlastClusterSingleAsync(flatCluster);
-    }
 
-
-    public async Task<IEnumerable<SanitizedCrimeRecord>> GetFlatClustersAsync()
-    {
-        return await _flatClusterRepository.GetFlatClustersAsync();
-    }
-
-    public async Task DeleteAllFlatClustersAsync()
-    {
-        await _flatClusterRepository.DeleteAllFlatClustersAsync();
-    }
 }

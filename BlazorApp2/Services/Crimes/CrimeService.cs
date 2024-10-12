@@ -61,7 +61,7 @@ public class CrimeService : ICrimeService
         return affectedRows;
     }
 
-    public static bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)
+    public bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)
     {
         return dtos.Any(i => !i.IsWithoutLatLong);
     }
