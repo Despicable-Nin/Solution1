@@ -19,5 +19,34 @@ namespace BlazorApp2.Services
 
         private static readonly ImmutableArray<string> _csvFieldsArray = [.. CSVFields.Split(",")];
         public static ImmutableArray<string> CSVFieldsArray => _csvFieldsArray;
+
+        public static bool ArePropertiesAssigned(object obj)
+        {
+            // Get the type of the object
+            Type type = obj.GetType();
+
+            // Iterate over all the properties
+            foreach (PropertyInfo property in type.GetProperties())
+            {
+                // Check if the property is writable and readable
+                if (property.CanRead)
+                {
+                    // Get the value of the property
+                    object? value = property.GetValue(obj);
+
+                    // Check if the value is null or the default value for its type
+                    if (value == null || IsDefaultValue(value))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public static bool IsDefaultValue(object value)
+        {
+            return value.Equals(Activator.CreateInstance(value.GetType()));
+        }
     }
 }

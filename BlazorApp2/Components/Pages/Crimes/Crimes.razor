@@ -138,7 +138,7 @@
         catch (Exception ex)
         {
             errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
-            ToastService.ShowError("An error occurred", settings =>
+            ToastService.ShowError($"An error occurred. {errorMessage}", settings =>
           {
               settings.Icon = "fas fa-exclamation-circle"; // Font Awesome icon
               settings.Timeout = 10000; // Duration in milliseconds
@@ -253,21 +253,25 @@
                 crimes.Add(crime);
             }
 
+            if(!GenericHelper.ArePropertiesAssigned(crimes))
+            {
+                throw new Exception("Some records have missing data. Please check the file and try again.");
+            }
+
             // add crimes to the database
             if (await CrimeService.AddCrimesAsync(crimes.Distinct()) == 0)
             {
                 throw new Exception("Upload complete but no changes. This may be caused by duplicate entries.");
             }
-            else
-            {
-                await JobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
+            
+             await JobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
 
-                ToastService.ShowSuccess("Finished uploading data..");
-                ToastService.ShowInfo("Job created for data sanitization..");
+            ToastService.ShowSuccess("Finished uploading data..");
+            ToastService.ShowInfo("Job created for data sanitization..");
 
-                // Notify parent component after a successful upload
-                await OnFileUploadSuccess.InvokeAsync();
-            }
+            // Notify parent component after a successful upload
+            await OnFileUploadSuccess.InvokeAsync();
+          
 
         }
         catch (Exception ex)

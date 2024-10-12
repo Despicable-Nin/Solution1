@@ -10,9 +10,9 @@ using Microsoft.AspNetCore.SignalR;
 namespace BlazorApp2.BackgroundServices;
 
 public class JobProcessingService(
-    ICrimeRepository crimeRepository, 
+    ICrimeRepository crimeRepository,
     IEnumeration enumService,
-    IJobService jobService, 
+    IJobService jobService,
     NominatimGeocodingService geocodingService,
     IHubContext<NotificationHub> hubContext)
 {
@@ -38,64 +38,58 @@ public class JobProcessingService(
 
             if (jobDto.Status == JobStatus.Created)
             {
-                try
-                {
-                    await jobService.UpdateJob(jobDto with { Status = JobStatus.Running });
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to update job: {Job}", jobDto);
-                }
+                await jobService.UpdateJob(jobDto with { Status = JobStatus.Running });
             }
 
             var dto = await crimeRepository.GetCrimesByBatchIdAsync(batchId);
             var crimes = dto.Where(i => i.Latitude == null || i.Longitude == null).ToArray();
             if (crimes.Length != 0)
             {
-               await PersistEnumerationsAsync(crimes);
+                await PersistEnumerationsAsync(crimes);
+
+                var crimeMotives = await enumService.GetCrimeMotives();
+                var crimeTypes = await enumService.GetCrimeTypes();
+                var severities = await enumService.GetSeverities();
+                var precincts = await enumService.GetPoliceDistricts();
+                var weathers = await enumService.GetWeatherConditions();
+
+                Dictionary<string, (double Latitude, double Longitude)> addressBook = [];
+                foreach (var crime in crimes)
+                {
+                    (double Latitude, double Longitude) result;
+                    if (addressBook.ContainsKey(crime.Address!))
+                    {
+                        result = addressBook!.GetValueOrDefault(crime.Address);
+                    }
+                    else
+                    {
+                        result = await geocodingService.GetLatLongAsync(crime.Address!);
+                        addressBook.TryAdd(crime.Address!, (result.Latitude, result.Longitude));
+
+                        Log.Logger.Information("Fetching GIS -- limiting rate by 1 request / second.");
+                        await Task.Delay(1000);
+                    }
+
+                    //hydrate fields
+                    crime.Longitude = (float)result.Longitude;
+                    crime.Latitude = (float)result.Latitude;
+                    crime.PoliceDistrictId = precincts.SingleOrDefault(i => i.Value == crime.PoliceDistrict).Key.ToString() ?? "0";
+                    crime.SeverityId = severities.SingleOrDefault(i => i.Value == crime.Severity).Key.ToString() ?? "0";
+                    crime.WeatherConditionId = weathers.SingleOrDefault(i => i.Value == crime.WeatherCondition).Key.ToString() ?? "0";
+                    crime.CrimeMotiveId = crimeMotives.SingleOrDefault(i => i.Value == crime.CrimeMotive).Key.ToString() ?? "0";
+                    crime.CrimeTypeId = crimeTypes.SingleOrDefault(i => i.Value == crime.CrimeType).Key.ToString() ?? "0";
+
+                    await crimeRepository.UpdateCrimeAsync(crime);
+                }
+
+                await crimeRepository.SaveChangesAsync(CancellationToken.None);
+
+                jobDto = jobDto with { Status = JobStatus.Suceeded };
+                await jobService.UpdateJob(jobDto);
+
+                Log.Logger.Information("Successfully processed ...");
             }
 
-            var crimeMotives = await enumService.GetCrimeMotives();
-            var crimeTypes = await enumService.GetCrimeTypes();
-            var severities = await enumService.GetSeverities();
-            var precincts = await enumService.GetPoliceDistricts();
-            var weathers = await enumService.GetWeatherConditions();
-
-            var addressBook = new ConcurrentDictionary<string, (double Latitude, double Longitude)>();
-            foreach (var crime in crimes)
-            {
-                (double Latitude, double Longitude) result = (0F, 0F);
-                if (addressBook.ContainsKey(crime.Address))
-                {
-                    result = addressBook.GetValueOrDefault(crime.Address);
-                }
-                else
-                {
-                    result = await geocodingService.GetLatLongAsync(crime.Address);
-                    addressBook.TryAdd(crime.Address, (result.Latitude, result.Longitude));
-                    Log.Logger.Information("Fetching GIS -- limiting rate by 1 request / second.");
-                    await Task.Delay(1000);
-                }
-
-                //hydrate fields
-                crime.Longitude = (float)result.Longitude;
-                crime.Latitude = (float)result.Latitude;
-                crime.PoliceDistrictId = precincts.SingleOrDefault(i => i.Value == crime.PoliceDistrict).Key.ToString() ?? "0";
-                crime.SeverityId = severities.SingleOrDefault(i => i.Value == crime.Severity).Key.ToString() ?? "0";
-                crime.WeatherConditionId = weathers.SingleOrDefault(i => i.Value == crime.WeatherCondition).Key.ToString() ?? "0";
-                crime.CrimeMotiveId = crimeMotives.SingleOrDefault(i => i.Value == crime.CrimeMotive).Key.ToString() ?? "0";
-                crime.CrimeTypeId = crimeTypes.SingleOrDefault(i => i.Value == crime.CrimeType).Key.ToString() ?? "0";
-
-                await crimeRepository.UpdateCrimeAsync(crime);
-            }
-
-            await crimeRepository.SaveChangesAsync(CancellationToken.None);
-
-            jobDto = jobDto with { Status = JobStatus.Suceeded };
-            await jobService.UpdateJob(jobDto);
-
-            Log.Logger.Information("Successfully processed ...");
-         
         }
         catch (Exception ex)
         {
@@ -121,7 +115,7 @@ public class JobProcessingService(
     {
         try
         {
-            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct()!);           
+            await enumService.AddCrimeTypes(crimes.Select(c => c.CrimeType).Distinct()!);
         }
         catch (Exception ex)
         {
