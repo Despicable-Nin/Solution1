@@ -65,7 +65,7 @@
         }
         else
         {
-            @if (!CrimeService.AreAllSanitized(CrimeDtos))
+            @if (IsDirty)
             {
                 <button type="submit" class="btn btn-outline-secondary" disabled="disabled">Sanitize (disabled)</button>
             }
@@ -93,6 +93,7 @@
     int totalItems;
 
     bool Loading;
+    bool IsDirty;
     int TotalPages => (int)Math.Ceiling((double)totalItems / itemsPerPage);
     int CurrentPage { get; set; } = 1;
     IEnumerable<CrimeDashboardDto> CrimeDtos = [];
@@ -100,19 +101,25 @@
     #region Lifecycle Method(s)
     protected override async Task OnInitializedAsync()
     {
+        var preventLoading = false;
         hubConnection = new HubConnectionBuilder()
-       .WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
-       .Build();
+         .WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
+         .Build();
 
-        hubConnection.On<string>("ReceiveJobUpdate", (message) =>
+        hubConnection.On<string>("ReceiveJobUpdate", async (message) =>
         {
             ToastService.ShowSuccess(message);
+            StateHasChanged();
         });
 
         await hubConnection.StartAsync();
 
-        await LoadData();
+        if (preventLoading == false)
+        {
+            await LoadData();
+        }
     }
+
     #endregion
 
     #region Method(s)
@@ -126,7 +133,7 @@
             var result = await CrimeService.GetCrimesAsync(CurrentPage, itemsPerPage);
             totalItems = result.TotalCount;
             CrimeDtos = result.Crimes;
-
+            IsDirty = CrimeDtos.Any(i => i.IsWithoutLatLong);
         }
         catch (Exception ex)
         {
