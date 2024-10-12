@@ -34,7 +34,7 @@
     image: blazorapp2:latest
     build:
       context: .
-      dockerfile: BlazorApp2/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
