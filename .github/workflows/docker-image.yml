@@ -29,13 +29,13 @@ jobs:
     - name: Log in to Docker Hub      
       uses: docker/login-action@v2      
       with:        
-        username: ${{ secrets.DOCKER_USERNAME }}  # Add as a GitHub secret        
-        password: ${{ secrets.DOCKER_PASSWORD }}  # Add as a GitHub secret
+        username: ${{ secrets.DOCKER_USERNAME }}        
+        password: ${{ secrets.DOCKER_PASSWORD }}
     
-    # Step 5: Build the services defined in docker-compose.yml    
+    # Step 5: Build and run Docker Compose    
     - name: Build and run Docker Compose      
       run: |        
-        docker-compose -f docker-compose.yml up --build -d
+        docker-compose -f Solution1/docker-compose.yml up --build -d
     
     # Step 6: Wait for services to be healthy (e.g., SQL Server and Blazor app)    
     - name: Wait for SQL Server and BlazorApp to become healthy      
@@ -50,5 +50,5 @@ jobs:
     #   run: dotnet test path_to_your_tests.csproj
     
     # Optional: Step 8: Push the built image (if you want to push to Docker Hub)    
-    # - name: Push Docker image    
-    #   run: docker-compose push
+    #   - name: Push Docker image    
+    #   run: docker-compose -f Solution1/docker-compose.yml push
