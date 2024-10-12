@@ -1,3 +1,4 @@
+using BlazorApp2.Services.Clustering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +7,6 @@ namespace BlazorApp2.Data
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
-        public DbSet<SanitizedCrimeRecord> SanitizedCrimeRecords { get; set; }
         public DbSet<Crime> Crimes { get; set; }
         public DbSet<CrimeMotive> CrimeMotives { get; set; }
         public DbSet<Weather> WeatherConditions { get; set; } 
@@ -49,17 +49,7 @@ namespace BlazorApp2.Data
             builder.Entity<CrimeType>().HasKey(c => c.Id);
             builder.Entity<CrimeType>().Property(c => c.Id).ValueGeneratedOnAdd();
             builder.Entity<CrimeType>().Property(c => c.Title).IsRequired();
-
-            builder.Entity<SanitizedCrimeRecord>().HasKey(c => c.Id);
-            builder.Entity<SanitizedCrimeRecord>().Property(c => c.Id).IsRequired();
-            builder.Entity<SanitizedCrimeRecord>().Property(c => c.Id).ValueGeneratedOnAdd();
-            builder.Entity<SanitizedCrimeRecord>().HasIndex(c => c.CaseID).IsUnique();
-
-            
-
         }
-
-     
     }
 
 }
