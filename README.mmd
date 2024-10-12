@@ -33,4 +33,18 @@ docker
 
 docker rmi -f $(docker images -q)
 docker image prune -a -f
+
 ```
+
+Make sure to check the docker-compose.yml and Dockerfile on the root folder of the project.
+You should be able to run the ff.
+```
+docker
+
+[Solution1 directory]: docker-compose up --build
+
+```
+This will run the application in localhost:8080
+
+For debugging, simply stop the container for the blazor app using the command-line `docker stop solution1-blazorapp-1 (this will stop the container named 'solution1-blazorapp-1'))`
+
