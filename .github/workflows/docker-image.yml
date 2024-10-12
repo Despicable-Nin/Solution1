@@ -35,7 +35,7 @@ jobs:
     # Step 5: Build and run Docker Compose    
     - name: Build and run Docker Compose      
       run: |        
-        docker-compose -f Solution1/docker-compose.yml up --build -d
+        docker-compose -f docker-compose.yml up --build -d
     
     # Step 6: Wait for services to be healthy (e.g., SQL Server and Blazor app)    
     - name: Wait for SQL Server and BlazorApp to become healthy      
@@ -51,4 +51,4 @@ jobs:
     
     # Optional: Step 8: Push the built image (if you want to push to Docker Hub)    
     #   - name: Push Docker image    
-    #   run: docker-compose -f Solution1/docker-compose.yml push
+    #   run: docker-compose -f docker-compose.yml push
