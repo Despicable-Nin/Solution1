@@ -56,9 +56,10 @@ public class Program
 
         builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+        builder.Services.AddHttpClient<AddressProcessorService>();
+
         builder.Services.AddMyRepositories();
         builder.Services.AddMyServices();
-        builder.Services.AddHttpClient<NominatimGeocodingService>();
         builder.Services.AddMyBackgroundServices();
         builder.Services.AddHangfire(config => config.UseSqlServerStorage(connectionString));
         builder.Services.AddHangfireServer();
