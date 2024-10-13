@@ -14,6 +14,7 @@ namespace BlazorApp2.Data
         public DbSet<Severity> Severity { get; set; }
         public DbSet<CrimeType> CrimeTypes { get; set; }
         public DbSet<Job> Jobs { get; set; }
+        public DbSet<Address> Addresses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -49,6 +50,11 @@ namespace BlazorApp2.Data
             builder.Entity<CrimeType>().HasKey(c => c.Id);
             builder.Entity<CrimeType>().Property(c => c.Id).ValueGeneratedOnAdd();
             builder.Entity<CrimeType>().Property(c => c.Title).IsRequired();
+
+            builder.Entity<Address>().HasKey(c => c.Id);
+            builder.Entity<Address>().Property(c => c.Id).ValueGeneratedOnAdd();
+            builder.Entity<Address>().Property(c => c.Description).IsRequired();
+            builder.Entity<Address>().HasIndex(c => c.Description).IsUnique();
         }
     }
 

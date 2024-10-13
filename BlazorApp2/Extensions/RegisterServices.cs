@@ -17,7 +17,6 @@ public static class RegisterServices
         services.AddScoped<IEnumeration, EnumerationService>();
         services.AddScoped<IClusteringService, ClusteringService>();
         services.AddScoped<IJobService, JobService>();
-        services.AddSingleton<NominatimGeocodingService>();
       
 
         return services;
@@ -32,6 +31,7 @@ public static class RegisterServices
         services.AddScoped<ISeverityRepository, SeverityRepository>();
         services.AddScoped<IWeatherRepository, WeatherConRepository>();
         services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IAddressRepository, AddressRepository>();
 
         return services;
     }
@@ -40,9 +40,9 @@ public static class RegisterServices
     {
         // Register the background service
         services.AddScoped<JobProcessingService>();
+        services.AddScoped<AddressProcessorService>();
         //services.AddHostedService<UploadBackgroundService>();
         //services.AddHostedService<GISBackgroundService>();
-        //services.AddSingleton<SanitizerBackgroundService>();
         return services;
     }
 }

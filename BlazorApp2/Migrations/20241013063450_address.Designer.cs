@@ -4,6 +4,7 @@ using BlazorApp2.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorApp2.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241013063450_address")]
+    partial class address
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -156,7 +159,7 @@ namespace BlazorApp2.Migrations
                     b.Property<DateTime>("DateUploaded")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2024, 10, 13, 16, 18, 6, 761, DateTimeKind.Local).AddTicks(1343));
+                        .HasDefaultValue(new DateTime(2024, 10, 13, 14, 34, 48, 157, DateTimeKind.Local).AddTicks(2105));
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -190,9 +193,6 @@ namespace BlazorApp2.Migrations
 
                     b.Property<int>("ResponseTimeInMinutes")
                         .HasColumnType("int");
-
-                    b.Property<string>("SanitizedAddress")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Severity")
                         .HasColumnType("nvarchar(max)");

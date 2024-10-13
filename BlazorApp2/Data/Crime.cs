@@ -25,6 +25,7 @@ namespace BlazorApp2.Data
         public DateTime Date { get; set; }
         public TimeSpan Time { get; set; }
         public string? Address { get; set; }
+        public string? SanitizedAddress { get; set; }
         public string? Severity { get; set; }
         public string? Description { get; set; }
         public string? WeaponUsed { get; set; }

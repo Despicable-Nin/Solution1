@@ -7,7 +7,7 @@ using Serilog;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BlazorApp2.Services.Clustering;
-public partial class ClusteringService() : IClusteringService
+public class ClusteringService() : IClusteringService
 {
     private readonly MLContext _mlContext = new();
 
