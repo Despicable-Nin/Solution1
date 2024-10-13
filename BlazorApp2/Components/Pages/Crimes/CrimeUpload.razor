@@ -76,7 +76,7 @@
                     CrimeType = columns[1],
                     Date = columns[2],
                     Time = TimeSpan.Parse(columns[3]),
-                    Address = columns[4],
+                    Address = columns[4].Replace(";",",").Replace(".","").ToUpper(),
                     Severity = columns[5],
                     Description = columns[6],
                     WeaponUsed = columns[7],
