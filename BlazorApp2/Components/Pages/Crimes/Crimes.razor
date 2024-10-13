@@ -243,7 +243,7 @@
                         CrimeType = columns[1],
                         Date = columns[2],
                         Time = TimeSpan.Parse(columns[3]),
-                        Address = columns[4],
+                        Address = columns[4].Replace("�"," ").ToUpper().Replace(";",","),
                         Severity = columns[5],
                         Description = columns[6],
                         WeaponUsed = columns[7],
@@ -275,10 +275,7 @@
                 throw new Exception("Upload complete but no changes. This may be caused by duplicate entries.");
             }
 
-            await JobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
-
             ToastService.ShowSuccess("Finished uploading data..");
-            ToastService.ShowInfo("Job created for data sanitization..");
 
             // Notify parent component after a successful upload
             await OnFileUploadSuccess.InvokeAsync();

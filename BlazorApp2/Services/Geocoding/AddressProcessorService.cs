@@ -7,6 +7,7 @@ namespace BlazorApp2.Services.Geocoding
     public class AddressProcessorService 
     {
         private readonly HttpClient _httpClient;
+        private readonly IAddressRepository _addressRepository;
 
         // Regex to target typical house numbers (e.g., "123", "123A", "123-B")
         private static readonly Regex HouseNumberRegex = new Regex(@"^\d+\s*\w*", RegexOptions.Compiled);
@@ -16,10 +17,11 @@ namespace BlazorApp2.Services.Geocoding
         private static readonly Regex PostalCodeRegex = new Regex(@"\d{4,5}(\s)?$", RegexOptions.Compiled);
         private static readonly Regex CountryNameRegex = new Regex(@"\b(PH|PHILIPPINES|PHIL)\b$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex BarangayRegex = new Regex(@"\b(Barangay|baranggay|brgy|brgy\.)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        public AddressProcessorService(HttpClient httpClient)
+        public AddressProcessorService(HttpClient httpClient, IAddressRepository addressRepository)
         {
             _httpClient = httpClient;
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "YourAppName/1.0");
+            _addressRepository = addressRepository;
         }
 
         public async Task<(string SanitizedAddress, (double? Latitude, double? Longitude))> GetLatLongAsync(string address)
@@ -76,7 +78,7 @@ namespace BlazorApp2.Services.Geocoding
             address = BarangayRegex.Replace(address, "").Trim();
             if (address.EndsWith(','))
             {
-                address = address.Substring(0, address.Length - 1);
+                address = address.Substring(0, address.Length - 1).Replace(".", "");
             }
             return string.Join(", ", address.Split(',').Select(part => part.Trim())).ToUpper();
         }
