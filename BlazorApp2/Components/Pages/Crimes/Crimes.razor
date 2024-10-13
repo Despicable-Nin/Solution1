@@ -98,17 +98,27 @@
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-         .WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
-         .Build();
+        .WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
+        .Build();
 
         hubConnection.On<string>("ReceiveJobUpdate", async (message) =>
         {
-            ToastService.ShowSuccess(message);
-            StateHasChanged();
+            try
+            {
+                ToastService.ShowSuccess(message);
+                await InvokeAsync(async () =>
+                {
+                    await LoadData();
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Logger.Error(ex, "Error handling ReceiveJobUpdate event.");
+                ToastService.ShowError("An error occurred while processing the job update.");
+            }
         });
 
         await hubConnection.StartAsync();
-
         await LoadData();
     }
 
@@ -137,6 +147,7 @@
         }
 
         Loading = false;
+        StateHasChanged();
     }
 
     private async Task OnSanitizeButtonClick()
@@ -161,10 +172,11 @@
 
     private async Task OnClearButtonClick()
     {
-        ToastService.ShowWarning("Deleting crime records...");
 
         await CrimeService.RemoveAllAsync();
         await LoadData();
+        ToastService.ShowWarning("Deleted crime records...");
+
     }
 
     private async Task ChangePage(int newPage)

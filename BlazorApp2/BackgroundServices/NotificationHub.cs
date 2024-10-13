@@ -9,4 +9,9 @@ public class NotificationHub : Hub
     {
         await Clients.All.SendAsync("ReceiveJobUpdate", message);
     }
+
+    public async Task Test(string message)
+    {
+        await Clients.All.SendAsync("Test", message);
+    }
 }
