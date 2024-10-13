@@ -10,40 +10,24 @@ using Microsoft.AspNetCore.SignalR;
 namespace BlazorApp2.BackgroundServices;
 
 public class JobProcessingService(
+    IAddressRepository addressRepository,
     ICrimeRepository crimeRepository,
     IEnumeration enumService,
     IJobService jobService,
-    NominatimGeocodingService geocodingService,
+    AddressProcessorService geocodingService,
     IHubContext<NotificationHub> hubContext)
 {
     public async Task ProcessJobAsync()
     {
         Log.Logger.Information($"Started {nameof(JobProcessingService.ProcessJobAsync)}");
 
-        JobDto? jobDto = await jobService.GetAJob();
-
-        if (jobDto == null)
-        {
-            Log.Logger.Information("Job pool empty.");
-            return;
-        }
-
-        if (!Guid.TryParse(jobDto.Name, out var batchId))
-        {
-            throw new InvalidOperationException($"Job {jobDto} has an invalid name. Should be of type Guid");
-        }
 
         try
         {
 
-            if (jobDto.Status == JobStatus.Created)
-            {
-                await jobService.UpdateJob(jobDto with { Status = JobStatus.Running });
-            }
-
-            var dto = await crimeRepository.GetCrimesByBatchIdAsync(batchId);
-            var crimes = dto.Where(i => i.Latitude == null || i.Longitude == null).ToArray();
-            if (crimes.Length != 0)
+            Dictionary<string, (double Latitude, double Longitude)> addressBook = await addressRepository.GetAddresses() ?? [];
+            var crimes = await crimeRepository.GetUnsanitizedCrimeRecords();
+            if (crimes.Any())
             {
                 await PersistEnumerationsAsync(crimes);
 
@@ -53,26 +37,53 @@ public class JobProcessingService(
                 var precincts = await enumService.GetPoliceDistricts();
                 var weathers = await enumService.GetWeatherConditions();
 
-                Dictionary<string, (double Latitude, double Longitude)> addressBook = [];
+             
                 foreach (var crime in crimes)
                 {
-                    (double Latitude, double Longitude) result;
-                    if (addressBook.ContainsKey(crime.Address!))
-                    {
-                        result = addressBook!.GetValueOrDefault(crime.Address);
-                    }
-                    else
-                    {
-                        result = await geocodingService.GetLatLongAsync(crime.Address!);
-                        addressBook.TryAdd(crime.Address!, (result.Latitude, result.Longitude));
+                    (string SanitizedAddress, (double? Latitude, double? Longitude)) result = default;
 
-                        Log.Logger.Information("Fetching GIS -- limiting rate by 1 request / second.");
-                        await Task.Delay(1000);
+                    var crimeAddress = crime.Address.ToUpper();
+                    //foreach(var key in addressBook.Keys)
+                    //{
+                    //    if(key.ToUpper().Contains(crimeAddress) )
+                    //    {
+                    //        result = (key.ToUpper(), addressBook[key]);
+                    //    }
+                    //}
+
+                    if (result == default)
+                    {
+                        if (addressBook.ContainsKey(crimeAddress!))
+                        {
+                            var latLong = addressBook!.GetValueOrDefault(crimeAddress);
+                            result = (crimeAddress, latLong);
+                        }
+                        else
+                        {
+                            Log.Logger.Information("Fetching GIS -- limiting rate by 1 request / second.");
+                            result = await geocodingService.GetLatLongAsync(crimeAddress!);
+                            var isNewAddress = addressBook.TryAdd(result.SanitizedAddress!.ToUpper(), (result.Item2.Latitude!.Value, result.Item2.Longitude!.Value));
+
+                            if (isNewAddress)
+                            {
+                                await addressRepository.CreateAddress(
+                                  new Address
+                                  {
+                                      Description = result.SanitizedAddress!.ToUpper(),
+                                      Latitude = result.Item2.Latitude,
+                                      Longitude = result.Item2.Longitude,
+                                      Id = Guid.NewGuid()
+                                  });
+
+                                await addressRepository.SaveChangesAsync(CancellationToken.None);
+                            }
+                        }
                     }
 
                     //hydrate fields
-                    crime.Longitude = (float)result.Longitude;
-                    crime.Latitude = (float)result.Latitude;
+                    crime.SanitizedAddress = result.SanitizedAddress;
+                    crime.Longitude = (float)result.Item2.Longitude.GetValueOrDefault();
+                    crime.Latitude = (float)result.Item2.Latitude.GetValueOrDefault();
                     crime.PoliceDistrictId = precincts.SingleOrDefault(i => i.Value == crime.PoliceDistrict).Key.ToString() ?? "0";
                     crime.SeverityId = severities.SingleOrDefault(i => i.Value == crime.Severity).Key.ToString() ?? "0";
                     crime.WeatherConditionId = weathers.SingleOrDefault(i => i.Value == crime.WeatherCondition).Key.ToString() ?? "0";
@@ -84,31 +95,18 @@ public class JobProcessingService(
 
                 await crimeRepository.SaveChangesAsync(CancellationToken.None);
 
-                jobDto = jobDto with { Status = JobStatus.Suceeded };
-                await jobService.UpdateJob(jobDto);
-
                 Log.Logger.Information("Successfully processed ...");
             }
 
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Something went wrong: {Job}", jobDto);
-            try
-            {
-                jobDto = jobDto with { Status = JobStatus.Failed };
-                await jobService.UpdateJob(jobDto);
-            }
-            catch (Exception ee)
-            {
-                Log.Error(ee, "You failed at failing. hahaha...", jobDto);
-            }
+            Log.Error(ex, "Something went wrong: {Message}", ex.Message);
+            await hubContext.Clients.All.SendAsync("ReceiveJobUpdate", ex.Message);
             return;
         }
-        finally
-        {
-            await hubContext.Clients.All.SendAsync("ReceiveJobUpdate", "Finished sanitizing data.");
-        }
+           
+        await hubContext.Clients.All.SendAsync("ReceiveJobUpdate", "Finished sanitizing data.");
     }
 
     private async Task PersistEnumerationsAsync(IEnumerable<Crime> crimes)

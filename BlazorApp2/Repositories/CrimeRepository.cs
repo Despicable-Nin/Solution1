@@ -1,11 +1,8 @@
-﻿using BlazorApp2.Components.Pages.Crimes;
-using BlazorApp2.Data;
+﻿using BlazorApp2.Data;
 using BlazorApp2.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.ML;
 
 namespace BlazorApp2.Repositories;
-
 public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
 {
     private readonly ApplicationDbContext _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
@@ -40,6 +37,16 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
     public async Task<IEnumerable<Crime>> GetCrimesByBatchIdAsync(Guid batchId)
     {
         var crimes = await dbContext.Crimes.AsNoTracking().Where(i => i.BatchId == batchId).ToArrayAsync();
+        return crimes;
+    }
+
+    public async Task<IEnumerable<Crime>> GetUnsanitizedCrimeRecords()
+    {
+        const float tolerance = 0.0001F;
+        Crime[] crimes = await dbContext.Crimes.AsNoTracking()
+            .Where(i => i.Longitude == null || Math.Abs(i.Longitude.Value) < tolerance || i.Latitude == null || Math.Abs(i.Latitude.Value) < tolerance)
+            .OrderBy(i => i.CaseID)
+            .ToArrayAsync();
         return crimes;
     }
 
