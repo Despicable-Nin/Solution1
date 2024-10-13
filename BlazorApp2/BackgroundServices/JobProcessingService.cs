@@ -44,42 +44,7 @@ public class JobProcessingService(
 
                     var crimeAddress = crime.Address.ToUpper();
                     result = await geocodingService.GetLatLongAsync(crimeAddress!);
-                    ////foreach(var key in addressBook.Keys)
-                    ////{
-                    ////    if(key.ToUpper().Contains(crimeAddress) )
-                    ////    {
-                    ////        result = (key.ToUpper(), addressBook[key]);
-                    ////    }
-                    ////}
-
-                    //if (result == default)
-                    //{
-                    //    if (addressBook.ContainsKey(crimeAddress!))
-                    //    {
-                    //        var latLong = addressBook!.GetValueOrDefault(crimeAddress);
-                    //        result = (crimeAddress, latLong);
-                    //    }
-                    //    else
-                    //    {
-                    //        Log.Logger.Information("Fetching GIS -- limiting rate by 1 request / second.");
-                    //        result = await geocodingService.GetLatLongAsync(crimeAddress!);
-                    //        var isNewAddress = addressBook.TryAdd(result.SanitizedAddress!.ToUpper(), (result.Item2.Latitude!.Value, result.Item2.Longitude!.Value));
-
-                    //        if (isNewAddress)
-                    //        {
-                    //            await addressRepository.CreateAddress(
-                    //              new Address
-                    //              {
-                    //                  Description = result.SanitizedAddress!.ToUpper(),
-                    //                  Latitude = result.Item2.Latitude,
-                    //                  Longitude = result.Item2.Longitude,
-                    //                  Id = Guid.NewGuid()
-                    //              });
-
-                    //            await addressRepository.SaveChangesAsync(CancellationToken.None);
-                    //        }
-                    //    }
-                    //}
+                   
 
                     //hydrate fields
                     crime.SanitizedAddress = result.SanitizedAddress;
