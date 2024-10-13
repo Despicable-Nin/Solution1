@@ -7,4 +7,5 @@ public interface ICrimeService
     public Task<IEnumerable<string>> GetCrimeTypes();
     public Task UpsertCrimeMotiveReferences(IEnumerable<string> crimeMotives);
     bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos);
+    Task RemoveAllAsync();
 }

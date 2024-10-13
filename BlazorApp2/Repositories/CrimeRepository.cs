@@ -74,4 +74,11 @@ public class CrimeRepository(ApplicationDbContext dbContext) : ICrimeRepository
             }
         }
     }
+
+    public async Task RemoveAllAsync()
+    {
+        var crimes = dbContext.Crimes;
+        dbContext.Crimes.RemoveRange(crimes);
+        await dbContext.SaveChangesAsync();
+    }
 }

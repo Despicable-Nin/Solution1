@@ -66,6 +66,11 @@ public class CrimeService : ICrimeService
         return dtos.Any(i => !i.IsNotSanitized());
     }
 
+    public async Task RemoveAllAsync()
+    {
+        await _crimeRepository.RemoveAllAsync();
+    }
+
 
 
     public async Task<PaginatedCrimesDto> GetCrimesAsync(int page = 1, int pageSize = 10)

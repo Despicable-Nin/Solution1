@@ -67,7 +67,7 @@
         else
         {
             <button type="submit" class="btn btn-outline-success mx-2" @onclick="OnSanitizeButtonClick">Sanitize</button>
-            <button type="submit" class="btn btn-danger">Clear</button>
+            <button type="submit" class="btn btn-danger" @onclick="OnClearButtonClick">Clear</button>
 
             <hr />
             <CrimesTable Crimes="CrimeDtos" />
@@ -108,7 +108,7 @@
         });
 
         await hubConnection.StartAsync();
- 
+
         await LoadData();
     }
 
@@ -157,6 +157,14 @@
         }
 
         ToastService.ShowSuccess("Sanitizing...");
+    }
+
+    private async Task OnClearButtonClick()
+    {
+        ToastService.ShowWarning("Deleting crime records...");
+
+        await CrimeService.RemoveAllAsync();
+        await LoadData();
     }
 
     private async Task ChangePage(int newPage)

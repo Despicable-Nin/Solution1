@@ -14,4 +14,5 @@ public interface ICrimeRepository
     Task DeleteCrimeAsync(Guid id);
     Task<IEnumerable<int>> GetExistingCaseIdsAsync();
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+    Task RemoveAllAsync();
 }
