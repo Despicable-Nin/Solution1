@@ -9,6 +9,7 @@
 @using BlazorApp2.Services
 @using BlazorApp2.Components
 @using BlazorApp2.Components.Pages.Partials
+@using BlazorApp2.Services.Crimes.Extensions
 @using BlazorApp2.Services.Enumerations
 @using BlazorApp2.Services.Jobs
 @using Blazored.Toast.Configuration
@@ -58,27 +59,23 @@
 
     @if (!Loading && CrimeDtos != null)
     {
-
+      
         @if (!CrimeDtos.Any())
         {
             <p>No crime records available.</p>
         }
         else
         {
-            @if (IsDirty)
-            {
-                <button type="submit" class="btn btn-outline-secondary" disabled="disabled">Sanitize (disabled)</button>
-            }
-            else
-            {
-                <button type="submit" class="btn btn-outline-success" @onclick="OnSanitizeButtonClick">Sanitize</button>
-            }
+            <button type="submit" class="btn btn-outline-success mx-2" @onclick="OnSanitizeButtonClick">Sanitize</button>
+            <button type="submit" class="btn btn-danger">Clear</button>
+
             <hr />
             <CrimesTable Crimes="CrimeDtos" />
 
             <!-- Pagination Controls -->
             <Pagination CurrentPage="CurrentPage" TotalPages="TotalPages" OnPageChanged="ChangePage" />
         }
+      
     }
 </div>
 
@@ -93,7 +90,6 @@
     int totalItems;
 
     bool Loading;
-    bool IsDirty;
     int TotalPages => (int)Math.Ceiling((double)totalItems / itemsPerPage);
     int CurrentPage { get; set; } = 1;
     IEnumerable<CrimeDashboardDto> CrimeDtos = [];
@@ -101,7 +97,6 @@
     #region Lifecycle Method(s)
     protected override async Task OnInitializedAsync()
     {
-        var preventLoading = false;
         hubConnection = new HubConnectionBuilder()
          .WithUrl(NavigationManager.ToAbsoluteUri("/notificationHub"))
          .Build();
@@ -113,11 +108,8 @@
         });
 
         await hubConnection.StartAsync();
-
-        if (preventLoading == false)
-        {
-            await LoadData();
-        }
+ 
+        await LoadData();
     }
 
     #endregion
@@ -133,7 +125,6 @@
             var result = await CrimeService.GetCrimesAsync(CurrentPage, itemsPerPage);
             totalItems = result.TotalCount;
             CrimeDtos = result.Crimes;
-            IsDirty = CrimeDtos.Any(i => i.IsWithoutLatLong);
         }
         catch (Exception ex)
         {
@@ -150,6 +141,11 @@
 
     private async Task OnSanitizeButtonClick()
     {
+        if(!CrimeDtos.Any(i => i.IsNotSanitized()))
+        {
+            ToastService.ShowWarning("Sanitization unnecessary.");
+            return;
+        }
         try
         {
             BackgroundJob.Enqueue(() => JobProcessor.ProcessJobAsync());
@@ -253,30 +249,26 @@
                 crimes.Add(crime);
             }
 
-            if(!GenericHelper.ArePropertiesAssigned(crimes))
-            {
-                throw new Exception("Some records have missing data. Please check the file and try again.");
-            }
-
             // add crimes to the database
             if (await CrimeService.AddCrimesAsync(crimes.Distinct()) == 0)
             {
                 throw new Exception("Upload complete but no changes. This may be caused by duplicate entries.");
             }
-            
-             await JobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
+
+            await JobService.CreateJobAsync(batchId.ToString(), JobType.Upload);
 
             ToastService.ShowSuccess("Finished uploading data..");
             ToastService.ShowInfo("Job created for data sanitization..");
 
             // Notify parent component after a successful upload
             await OnFileUploadSuccess.InvokeAsync();
-          
+
 
         }
         catch (Exception ex)
         {
             var errorMessage = ex.Message + "\r\n" + ex.InnerException?.Message;
+            Log.Logger.Error(ex, errorMessage);
             ToastService.ShowError($"Error processing file: {errorMessage}");
         }
 

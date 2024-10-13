@@ -63,8 +63,10 @@ public class CrimeService : ICrimeService
 
     public bool AreAllSanitized(IEnumerable<CrimeDashboardDto> dtos)
     {
-        return dtos.Any(i => !i.IsWithoutLatLong);
+        return dtos.Any(i => !i.IsNotSanitized());
     }
+
+
 
     public async Task<PaginatedCrimesDto> GetCrimesAsync(int page = 1, int pageSize = 10)
     {
@@ -74,7 +76,6 @@ public class CrimeService : ICrimeService
             Address = c.Address,
             Latitude = c.Latitude.HasValue ? c.Latitude.ToString() : "0",
             Longitude = c.Longitude.HasValue ? c.Longitude.ToString() : "0",
-            IsWithoutLatLong = c.Latitude.HasValue && c.Longitude.HasValue,  
             ArrestDate = c.ArrestDate?.ToString("u"),
             ArrestMade = c.ArrestMade ? 1 : 0,
             CaseID = c.CaseID,

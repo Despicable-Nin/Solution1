@@ -25,8 +25,10 @@ namespace BlazorApp2.Services
             // Get the type of the object
             Type type = obj.GetType();
 
+            var properties = type.GetProperties();
+
             // Iterate over all the properties
-            foreach (PropertyInfo property in type.GetProperties())
+            foreach (PropertyInfo property in properties)
             {
                 // Check if the property is writable and readable
                 if (property.CanRead)

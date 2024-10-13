@@ -33,7 +33,7 @@
                     <td>@crime.CrimeMotive</td>
                     <td>@crime.RecurringIncident</td>                 
                 
-                        <td>@crime.IsWithoutLatLong</td>
+                        <td>@(!crime.IsNotSanitized())</td>
                    
                 </tr>
             }

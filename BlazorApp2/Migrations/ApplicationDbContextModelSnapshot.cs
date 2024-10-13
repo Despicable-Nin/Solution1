@@ -132,7 +132,7 @@ namespace BlazorApp2.Migrations
                     b.Property<DateTime>("DateUploaded")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValue(new DateTime(2024, 10, 12, 19, 14, 11, 756, DateTimeKind.Local).AddTicks(2245));
+                        .HasDefaultValue(new DateTime(2024, 10, 13, 7, 29, 45, 493, DateTimeKind.Local).AddTicks(8161));
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");

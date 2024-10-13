@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlazorApp2.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class ini : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -68,7 +68,15 @@ namespace BlazorApp2.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DateUploaded = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValue: new DateTime(2024, 9, 26, 17, 37, 24, 516, DateTimeKind.Local).AddTicks(2181)),
+                    BatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Latitude = table.Column<float>(type: "real", nullable: true),
+                    Longitude = table.Column<float>(type: "real", nullable: true),
+                    SeverityId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CrimeTypeId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PoliceDistrictId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    WeatherConditionId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CrimeMotiveId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DateUploaded = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValue: new DateTime(2024, 10, 13, 7, 29, 45, 493, DateTimeKind.Local).AddTicks(8161)),
                     CaseID = table.Column<int>(type: "int", nullable: false),
                     CrimeType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Date = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -114,39 +122,20 @@ namespace BlazorApp2.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SanitizedCrimeRecords",
+                name: "Jobs",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CaseID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CrimeType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Date = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Time = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Latitude = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Longitude = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Severity = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    VictimCount = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ArrestMade = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ArrestDate = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ResponseTimeInMinutes = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PoliceDistrict = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    WeatherCondition = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CrimeMotive = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NearbyLandmarkLatitude = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NearbyLandmarkLongitude = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RecurringIncident = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PopulationDensityPerSqKm = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UnemploymentRate = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MedianIncome = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ProximityToPoliceStationInKm = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StreetLightPresent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CCTVCoverage = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AlcoholOrDrugInvolvement = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    JobType = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastUpdatedDateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Retries = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FatClusters", x => x.Id);
+                    table.PrimaryKey("PK_Jobs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -341,12 +330,6 @@ namespace BlazorApp2.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FatClusters_CaseID",
-                table: "SanitizedCrimeRecords",
-                column: "CaseID",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_PoliceDistricts_Title",
                 table: "PoliceDistricts",
                 column: "Title",
@@ -393,7 +376,7 @@ namespace BlazorApp2.Migrations
                 name: "CrimeTypes");
 
             migrationBuilder.DropTable(
-                name: "SanitizedCrimeRecords");
+                name: "Jobs");
 
             migrationBuilder.DropTable(
                 name: "PoliceDistricts");
