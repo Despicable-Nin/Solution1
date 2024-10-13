@@ -31,14 +31,14 @@
                 .Verifiable();
 
             var httpClient = new HttpClient(mockHttpMessageHandler.Object);
-            var geocodingService = new NominatimGeocodingService(httpClient);
+            var geocodingService = new AddressProcessorService(httpClient);
 
             // Act
-            var (latitude, longitude) = await geocodingService.GetLatLongAsync("1600 Amphitheatre Parkway, Mountain View, CA");
+            var (description,latlong) = await geocodingService.GetLatLongAsync("1600 Amphitheatre Parkway, Mountain View, CA");
 
             // Assert
-            Assert.Equal(37.4224764, latitude);
-            Assert.Equal(-122.0842499, longitude);
+            Assert.Equal(37.4224764, latlong.Latitude);
+            Assert.Equal(-122.0842499, latlong.Longitude);
 
             // Verify that the SendAsync method was called exactly once
             mockHttpMessageHandler.Protected().Verify(
@@ -70,7 +70,7 @@
                 .Verifiable();
 
             var httpClient = new HttpClient(mockHttpMessageHandler.Object);
-            var geocodingService = new NominatimGeocodingService(httpClient);
+            var geocodingService = new AddressProcessorService(httpClient);
 
             // Act & Assert
             await Assert.ThrowsAsync<Exception>(() => geocodingService.GetLatLongAsync("Invalid Address"));

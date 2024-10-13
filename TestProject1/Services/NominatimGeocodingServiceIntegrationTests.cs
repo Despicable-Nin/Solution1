@@ -4,12 +4,12 @@ namespace TestProject1.Services
 {
     public class NominatimGeocodingServiceIntegrationTests
     {
-        private readonly NominatimGeocodingService _geocodingService;
+        private readonly AddressProcessorService _geocodingService;
 
         public NominatimGeocodingServiceIntegrationTests()
         {
             var httpClient = new HttpClient();
-            _geocodingService = new NominatimGeocodingService(httpClient);
+            _geocodingService = new AddressProcessorService(httpClient);
         }
 
         [Theory]
