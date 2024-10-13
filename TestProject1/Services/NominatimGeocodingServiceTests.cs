@@ -3,6 +3,7 @@
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using BlazorApp2.Repositories.Interfaces;
     using BlazorApp2.Services.Geocoding;
     using Moq;
     using Moq.Protected;
@@ -31,7 +32,7 @@
                 .Verifiable();
 
             var httpClient = new HttpClient(mockHttpMessageHandler.Object);
-            var geocodingService = new AddressProcessorService(httpClient);
+            var geocodingService = new AddressProcessorService(httpClient, new Mock<IAddressRepository>().Object);
 
             // Act
             var (description,latlong) = await geocodingService.GetLatLongAsync("1600 Amphitheatre Parkway, Mountain View, CA");
@@ -70,7 +71,7 @@
                 .Verifiable();
 
             var httpClient = new HttpClient(mockHttpMessageHandler.Object);
-            var geocodingService = new AddressProcessorService(httpClient);
+            var geocodingService = new AddressProcessorService(httpClient, new Mock<IAddressRepository>().Object);
 
             // Act & Assert
             await Assert.ThrowsAsync<Exception>(() => geocodingService.GetLatLongAsync("Invalid Address"));

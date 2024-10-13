@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Runtime.Serialization;
 
 namespace BlazorApp2.Services.Crimes;
@@ -17,6 +18,16 @@ public record CrimeDashboardDto
     [Display(Name = "Type")]
     [Required]
     public string? CrimeType { get; init; }
+    [Display(Name = "Date")]
+    public DateTime CrimeDateTime()
+    {
+        if (Date == null)
+        {
+            throw new ArgumentNullException(nameof(CrimeDashboardDto.Date), "Date cannot be null");
+        }
+        var date = DateTime.Parse(Date, CultureInfo.InvariantCulture).Date;
+        return date.AddTicks(Time.Ticks);
+    }
     [Required]
     public string? Date { get; init; }
     [Required]

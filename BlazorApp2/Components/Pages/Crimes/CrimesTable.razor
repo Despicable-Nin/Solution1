@@ -6,7 +6,6 @@
                 <th>Case ID</th>
                 <th>Crime Type</th>
                 <th>Date</th>
-                <th>Time</th>
                 <th>Address</th>                
                 <th>Severity</th>
                 <th>Arrest Made</th>
@@ -23,8 +22,7 @@
                 <tr>
                     <td>@crime.CaseID</td>
                     <td>@crime.CrimeType</td>
-                    <td>@crime.Date</td>
-                    <td>@crime.Time.ToString(@"hh\:mm\:ss")</td>
+                    <td>@crime.CrimeDateTime()</td>
                     <td>@crime.Address</td>
                     <td>@crime.Severity</td>
                     <td>@string.IsNullOrEmpty(crime.ArrestDate)</td>

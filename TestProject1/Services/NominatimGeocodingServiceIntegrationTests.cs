@@ -1,4 +1,6 @@
-﻿using BlazorApp2.Services.Geocoding;
+﻿using BlazorApp2.Repositories.Interfaces;
+using BlazorApp2.Services.Geocoding;
+using Moq;
 
 namespace TestProject1.Services
 {
@@ -9,7 +11,7 @@ namespace TestProject1.Services
         public NominatimGeocodingServiceIntegrationTests()
         {
             var httpClient = new HttpClient();
-            _geocodingService = new AddressProcessorService(httpClient);
+            _geocodingService = new AddressProcessorService(httpClient, new Mock<IAddressRepository>().Object);
         }
 
         [Theory]
