@@ -57,3 +57,15 @@ volumes:
 
 networks:
   app-network:
+
+  espasyo-api:
+    image: espasyo-api
+    build:
+      context: .
+      dockerfile: espasyo-api/Dockerfile
+
+  webapplication1:
+    image: webapplication1
+    build:
+      context: .
+      dockerfile: WebApplication1/Dockerfile
